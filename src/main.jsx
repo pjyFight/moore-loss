@@ -1,9 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
-import { buildComparison, COMPARISON_MODES, formatErrorFixed, formatValue } from './utils/compare'
+import { buildComparisons, COMPARISON_MODES, formatErrorFixed, formatValue } from './utils/compare'
 import { DEFAULT_REGEX_RULES, parseLogText, samplePoints } from './utils/parseLog'
 import { anomalyColor, detectAnomalies } from './utils/anomalies'
+import { exportChartsToSvg } from './utils/exportCharts'
 
 const COLORS = ['#6d5dfc', '#17b992', '#e76f51', '#f2a93b']
 
@@ -21,10 +22,10 @@ const I18N = {
     sources: 'SOURCES', uploadLogs: 'Upload logs', dropLogs: 'Drop training logs', browse: 'or click to browse files', formats: 'JSON, JSONL, CSV or text logs', multiHint: 'Select up to 4 files at once', parsedPoints: 'parsed points · local file',
     parser: 'PARSER RULES', parseFields: 'Parse fields', reset: 'Reset', parserHelp: 'Regex rules use the first capture group. They apply to plain-text logs; JSON and CSV use their field names.', stepRegex: 'Step regex', lossRegex: 'Loss regex', gradRegex: 'Grad norm regex',
     configuration: 'CONFIGURATION', shapeView: 'Shape the view', metric: 'Metric', loss: 'Loss', gradNorm: 'Grad norm', sampling: 'Sampling step', steps: 'steps', comparisonMode: 'Comparison mode',
-    ready: 'Ready to upload', startLogs: 'Start with your training logs', uploadOne: 'Upload a log to view its loss or grad norm curve. Add a second log when you are ready to compare.', singleRun: 'Single run view.', uploadSecond: 'Upload a second file to unlock step-by-step comparison.',
-    comparison: 'COMPARISON', traceOverview: 'TRACE OVERVIEW', byStep: 'by training step', points: 'points', stepDifference: 'STEP DIFFERENCE', bothPlots: 'Both plots use the same x-axis', samplingAverage: 'Sampling averages each step bucket',
+    ready: 'Ready to upload', startLogs: 'Start with your training logs', uploadOne: 'Upload a log to view its loss or grad norm curve. Add more logs to compare each run against a selected baseline.', singleRun: 'Single run view.', uploadSecond: 'Upload another file to unlock step-by-step comparison.', baseline: 'Baseline', setBaseline: 'Set as baseline', vs: 'vs',
+    comparison: 'COMPARISON', traceOverview: 'TRACE OVERVIEW', byStep: 'by training step', points: 'points', stepDifference: 'STEP DIFFERENCE', bothPlots: 'All charts use the same full step range', samplingAverage: 'Sampling averages each step bucket', noSharedSteps: 'No shared steps with valid values for this metric.', pairStats: 'Comparison statistics',
     meanError: 'Mean error', meanSquare: 'Mean square error', maxError: 'Max error', minError: 'Min error', acrossShared: 'across shared steps', squaredAverage: 'squared difference average', absoluteMagnitude: 'absolute magnitude', minimumError: 'minimum error value',
-    readingCharts: 'Reading the charts.', chartFirst: 'The first panel preserves both raw traces.', chartSecond: 'The second panel shows the selected per-step comparison.', relativeDenominator: 'Relative modes use file A as the denominator, matching TrainingLogParser; relative views include a 2% reference line.',
+    readingCharts: 'Reading the charts.', chartFirst: 'The first panel preserves every uploaded run.', chartSecond: 'Each following panel compares the baseline with one other run.', relativeDenominator: 'Relative modes use the selected baseline as the denominator, matching TrainingLogParser; relative views include a 2% reference line.',
     hoverZoom: 'Hover for values · use buttons to zoom', trainingStep: 'training step', difference: 'difference', noValues: 'No values to display.', file: 'file', anomalySection: 'ANOMALIES', anomalyDetection: 'Anomaly detection', anomalyEnabled: 'Enable anomaly detection', spikeFactor: 'Spike factor', explosionFactor: 'Explosion ×', threshold: 'Error threshold', thresholdHelp: 'Red line on the difference chart; relative modes use the same 0.05 ratio (5%).', anomalyEvents: 'Anomaly events', noAnomalies: 'No anomalies detected', eventStep: 'Step', eventRun: 'Run', eventMetric: 'Metric', eventType: 'Type', eventValue: 'Value',
   },
   zh: {
@@ -33,10 +34,10 @@ const I18N = {
     sources: '数据源', uploadLogs: '上传日志', dropLogs: '拖入训练日志', browse: '或点击选择文件', formats: 'JSON、JSONL、CSV 或文本日志', multiHint: '一次最多选择 4 个文件', parsedPoints: '个解析点 · 本地文件',
     parser: '解析规则', parseFields: '解析字段', reset: '重置', parserHelp: '正则表达式使用第一个捕获组作为数值。它们用于纯文本日志；JSON 和 CSV 使用字段名。', stepRegex: 'Step 正则', lossRegex: 'Loss 正则', gradRegex: 'Grad norm 正则',
     configuration: '配置', shapeView: '调整视图', metric: '指标', loss: 'Loss', gradNorm: 'Grad norm', sampling: '采样步长', steps: '步', comparisonMode: '对比方式',
-    ready: '等待上传', startLogs: '从训练日志开始', uploadOne: '上传一个日志即可查看 loss 或 grad norm 曲线；准备好后再上传第二个文件进行对比。', singleRun: '单文件视图。', uploadSecond: '再上传一个文件以开启逐步对比。',
-    comparison: '对比', traceOverview: '曲线总览', byStep: '按训练步数', points: '个点', stepDifference: '步级差值', bothPlots: '两张图使用相同的横轴', samplingAverage: '采样会对每个步长桶取平均',
+    ready: '等待上传', startLogs: '从训练日志开始', uploadOne: '上传一个日志即可查看 loss 或 grad norm 曲线；继续上传文件，可将每个运行与选定基准进行对比。', singleRun: '单文件视图。', uploadSecond: '再上传一个文件以开启逐步对比。', baseline: '基准文件', setBaseline: '设为基准', vs: '对比',
+    comparison: '对比', traceOverview: '曲线总览', byStep: '按训练步数', points: '个点', stepDifference: '步级差值', bothPlots: '所有图使用相同的完整步数范围', samplingAverage: '采样会对每个步长桶取平均', noSharedSteps: '当前指标没有可对齐的有效共同步数。', pairStats: '对比统计',
     meanError: '平均误差', meanSquare: '均方误差', maxError: '最大误差', minError: '最小误差', acrossShared: '覆盖共同步数', squaredAverage: '差值平方的平均', absoluteMagnitude: '绝对值大小', minimumError: '误差最小值',
-    readingCharts: '图表说明。', chartFirst: '第一张图保留两个运行的原始曲线。', chartSecond: '第二张图展示选定的逐步对比结果。', relativeDenominator: '相对模式使用文件 A 作为分母，与 TrainingLogParser 一致；相对视图包含 2% 参考线。',
+    readingCharts: '图表说明。', chartFirst: '第一张图保留所有已上传运行的原始曲线。', chartSecond: '后续每张图展示基准文件与一个其他文件的逐步对比。', relativeDenominator: '相对模式使用选定基准作为分母，与 TrainingLogParser 一致；相对视图包含 2% 参考线。',
     hoverZoom: '悬停查看数值 · 使用按钮缩放', trainingStep: '训练步数', difference: '差值', noValues: '暂无可展示的数据。', file: '文件', anomalySection: '异常检测', anomalyDetection: '异常检测', anomalyEnabled: '启用异常检测', spikeFactor: '突增倍数', explosionFactor: '爆炸倍数', threshold: '误差阈值', thresholdHelp: '差值图中的红线；相对模式使用相同的 0.05 比例（5%）。', anomalyEvents: '异常事件', noAnomalies: '未检测到异常', eventStep: '步数', eventRun: '运行', eventMetric: '指标', eventType: '类型', eventValue: '数值',
   },
 }
@@ -58,7 +59,7 @@ function Icon({ name, size = 18 }) {
   return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{paths[name]}</svg>
 }
 
-function LineChart({ series, chartRef, chartLabel, yTitle, formatAxis = (value) => formatValue(value, 3), gradientId, signed = false, isDifference = false, language = 'en', anomalyMarkers = [], threshold = null, valueScale = 1 }) {
+function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value) => formatValue(value, 3), gradientId, signed = false, isDifference = false, language = 'en', anomalyMarkers = [], threshold = null, valueScale = 1, xDomain, emptyMessage }) {
   const ui = I18N[language]
   const width = 920
   const height = 390
@@ -73,14 +74,14 @@ function LineChart({ series, chartRef, chartLabel, yTitle, formatAxis = (value) 
   const [hoverPosition, setHoverPosition] = useState(null)
   const allPoints = series.flatMap((item) => item.points)
   if (!allPoints.length) {
-    return <div className="chart-empty" role="status">{ui.noValues}</div>
+    return <div className="chart-empty" role="status">{emptyMessage ?? ui.noValues}</div>
   }
   const plotSeries = series.map((item) => ({ ...item, points: item.points.map((point) => ({ ...point, value: point.value * valueScale })) }))
   const plotPoints = plotSeries.flatMap((item) => item.points)
   const labels = plotPoints.map((point) => point.step)
   const values = plotPoints.map((point) => point.value)
-  const fullMin = Math.min(...labels)
-  const fullMax = Math.max(...labels)
+  const fullMin = xDomain?.[0] ?? Math.min(...labels)
+  const fullMax = xDomain?.[1] ?? Math.max(...labels)
   const xMin = zoom?.[0] ?? fullMin
   const xMax = zoom?.[1] ?? fullMax
   const minValue = values.length ? Math.min(...values) : 0
@@ -98,7 +99,7 @@ function LineChart({ series, chartRef, chartLabel, yTitle, formatAxis = (value) 
   const xTicks = Array.from({ length: 5 }, (_, index) => xMin + ((xMax - xMin) * index) / 4)
   const visibleSeries = plotSeries.map((item) => ({ ...item, points: item.points.filter((point) => point.step >= xMin && point.step <= xMax) })).filter((item) => item.points.length)
   const hoverX = hoverStep === null ? null : x(hoverStep)
-  const hoverValues = hoverStep === null ? [] : plotSeries.filter((item) => !item.baseline && item.points.length).map((item) => ({ ...item, displayLabel: isDifference ? ui.difference : item.label, point: item.points.reduce((closest, point) => Math.abs(point.step - hoverStep) < Math.abs(closest.step - hoverStep) ? point : closest, item.points[0]) }))
+  const hoverValues = hoverStep === null ? [] : plotSeries.filter((item) => !item.baseline).map((item) => ({ ...item, displayLabel: isDifference ? ui.difference : item.label, point: item.points.find((point) => point.step === hoverStep) }))
   const readPoint = (event) => {
     const rect = svgRef.current?.getBoundingClientRect()
     if (!rect) return null
@@ -121,7 +122,7 @@ function LineChart({ series, chartRef, chartLabel, yTitle, formatAxis = (value) 
     <div className="chart-frame">
       <div className="chart-toolbar"><span>{ui.hoverZoom}</span><span className="chart-toolbar-actions"><button type="button" onClick={() => zoomAt(.75)} aria-label="Zoom in">＋</button><button type="button" onClick={() => zoomAt(1.35)} aria-label="Zoom out">−</button><button type="button" onClick={() => setZoom(null)} aria-label={ui.reset}>{ui.reset}</button></span></div>
       {!isDifference && <div className="chart-legend" aria-label={language === 'zh' ? '文件图例' : 'File legend'}>{series.filter((item) => !item.baseline && item.points.length).map((item) => <span key={item.id}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
-      <svg ref={(node) => { svgRef.current = node; if (chartRef) chartRef.current = node }} className="trace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onMouseMove={(event) => { const point = readPoint(event); setHoverStep(point?.step ?? null); setHoverPosition(point) }} onMouseLeave={() => { setHoverStep(null); setHoverPosition(null) }}>
+      <svg ref={(node) => { svgRef.current = node; onChartRef?.(node) }} className="trace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onMouseMove={(event) => { const point = readPoint(event); setHoverStep(point?.step ?? null); setHoverPosition(point) }} onMouseLeave={() => { setHoverStep(null); setHoverPosition(null) }}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6d5dfc" stopOpacity="0.06"/><stop offset="1" stopColor="#6d5dfc" stopOpacity="0"/></linearGradient>
         </defs>
@@ -144,9 +145,9 @@ function LineChart({ series, chartRef, chartLabel, yTitle, formatAxis = (value) 
           return <g key={event.id}><line x1={x(event.step)} x2={x(event.step)} y1={pad.top} y2={height - pad.bottom} stroke={anomalyColor(event.type)} strokeDasharray="3 5" opacity=".55" /><circle cx={x(event.step)} cy={markerY} r="6" fill={anomalyColor(event.type)} stroke="#fff" strokeWidth="2"><title>{`${event.label} · step ${event.step}`}</title></circle></g>
         })}
         {thresholdValue !== null && <g className="threshold-line"><line x1={pad.left} x2={width - pad.right} y1={y(thresholdValue)} y2={y(thresholdValue)} stroke="#d14d5c" strokeWidth="2" strokeDasharray="8 6" /><text x={width - pad.right - 4} y={y(thresholdValue) - 8} textAnchor="end" className="threshold-label">{ui.threshold} {formatAxis(thresholdValue)}</text>{signed && <><line x1={pad.left} x2={width - pad.right} y1={y(-thresholdValue)} y2={y(-thresholdValue)} stroke="#d14d5c" strokeWidth="2" strokeDasharray="8 6" /><text x={width - pad.right - 4} y={y(-thresholdValue) + 17} textAnchor="end" className="threshold-label">−{formatAxis(thresholdValue)}</text></>}</g>}
-        {hoverX !== null && <g className="chart-hover"><line x1={hoverX} x2={hoverX} y1={pad.top} y2={height - pad.bottom} stroke="#6d5dfc" strokeDasharray="4 4" opacity=".65" />{hoverValues.map((item) => <circle key={item.id} cx={hoverX} cy={y(item.point.value)} r="5" fill="#fff" stroke={item.color} strokeWidth="2.5" />)}</g>}
+        {hoverX !== null && <g className="chart-hover"><line x1={hoverX} x2={hoverX} y1={pad.top} y2={height - pad.bottom} stroke="#6d5dfc" strokeDasharray="4 4" opacity=".65" />{hoverValues.filter((item) => item.point).map((item) => <circle key={item.id} cx={hoverX} cy={y(item.point.value)} r="5" fill="#fff" stroke={item.color} strokeWidth="2.5" />)}</g>}
       </svg>
-      {hoverStep !== null && hoverValues.length > 0 && <div className="chart-tooltip" style={{ left: `${Math.min(94, Math.max(6, hoverPosition?.xPercent ?? 50))}%`, top: `calc(36px + ${Math.min(72, Math.max(6, hoverPosition?.yPercent ?? 35))}%)`, transform: `translateX(-50%) ${((hoverPosition?.yPercent ?? 35) > 58) ? 'translateY(-110%)' : 'translateY(12px)'}` }}><strong>{language === 'zh' ? '步数' : 'step'} {hoverStep.toLocaleString()}</strong>{hoverValues.map((item) => <span key={item.id}><i style={{ background: item.color }} />{item.displayLabel}: <b>{formatAxis(item.point.value)}</b></span>)}</div>}
+      {hoverStep !== null && hoverValues.length > 0 && <div className="chart-tooltip" style={{ left: `${Math.min(94, Math.max(6, hoverPosition?.xPercent ?? 50))}%`, top: `calc(36px + ${Math.min(72, Math.max(6, hoverPosition?.yPercent ?? 35))}%)`, transform: `translateX(-50%) ${((hoverPosition?.yPercent ?? 35) > 58) ? 'translateY(-110%)' : 'translateY(12px)'}` }}><strong>{language === 'zh' ? '步数' : 'step'} {hoverStep.toLocaleString()}</strong>{hoverValues.map((item) => <span key={item.id}><i style={{ background: item.color }} /><span className="tooltip-run-name" title={item.displayLabel}>{item.displayLabel}:</span> <b>{item.point ? formatAxis(item.point.value) : '—'}</b></span>)}</div>}
     </div>
   )
 }
@@ -165,11 +166,15 @@ function Dropzone({ onFiles, language }) {
   </div>
 }
 
-function RunRow({ run, index, onRemove, language }) {
+function RunRow({ run, index, onRemove, onSetBaseline, isBaseline, language }) {
   const ui = I18N[language]
-  return <div className="run-row">
+  return <div className={`run-row ${isBaseline ? 'is-baseline' : ''}`}>
     <span className="run-swatch" style={{ background: run.color ?? COLORS[index] }} />
     <div className="run-copy"><strong>{run.name}</strong><span>{run.points.length} {ui.parsedPoints}</span></div>
+    <label className="baseline-choice" title={isBaseline ? ui.baseline : ui.setBaseline}>
+      <input type="radio" name="baseline-run" checked={isBaseline} onChange={() => onSetBaseline(run.id)} aria-label={`${isBaseline ? ui.baseline : ui.setBaseline}: ${run.name}`} />
+      <span>{isBaseline ? ui.baseline : ui.setBaseline}</span>
+    </label>
     <button className="icon-button" onClick={() => onRemove(run.id)} aria-label={`Remove ${run.name}`}><Icon name="x" size={16} /></button>
   </div>
 }
@@ -185,15 +190,28 @@ function App() {
   const [parserError, setParserError] = useState('')
   const [comparisonThreshold, setComparisonThreshold] = useState(0.05)
   const [anomalyOptions, setAnomalyOptions] = useState({ enabled: true, spikeFactor: 2, explosionFactor: 5, madFactor: 6 })
+  const [baselineId, setBaselineId] = useState(null)
   const rawChartRef = useRef(null)
-  const errorChartRef = useRef(null)
-  const comparisonRuns = useMemo(() => runs.slice(0, 2).map((run, index) => ({ ...run, color: run.color ?? COLORS[index], points: samplePoints(run.points, sampleStep) })), [runs, sampleStep])
-  const comparison = useMemo(() => buildComparison(comparisonRuns, metric, mode), [comparisonRuns, metric, mode])
+  const errorChartRefs = useRef({})
+  const comparisonRuns = useMemo(() => runs.map((run, index) => ({ ...run, color: run.color ?? COLORS[index % COLORS.length], points: samplePoints(run.points, sampleStep) })), [runs, sampleStep])
+  const baselineRun = comparisonRuns.find((run) => run.id === baselineId) ?? comparisonRuns[0]
+  const comparisonPairs = useMemo(() => buildComparisons(comparisonRuns, metric, mode, baselineRun?.id), [comparisonRuns, metric, mode, baselineRun?.id])
   const modeConfig = COMPARISON_MODES[mode]
   const ui = I18N[language]
   const differenceScale = modeConfig.relative ? 100 : 1
   const differenceAxisFormat = (value) => modeConfig.relative ? `${value.toFixed(2)}%` : formatValue(value, 2)
   const rawSeries = useMemo(() => comparisonRuns.map((run) => ({ id: run.id, label: run.name, color: run.color, points: run.points.flatMap((point) => Number.isFinite(point[metric]) ? [{ step: point.step, value: point[metric] }] : []) })), [comparisonRuns, metric])
+  const stepDomain = useMemo(() => {
+    let min = Infinity
+    let max = -Infinity
+    for (const series of rawSeries) {
+      for (const point of series.points) {
+        min = Math.min(min, point.step)
+        max = Math.max(max, point.step)
+      }
+    }
+    return Number.isFinite(min) ? [min, max] : undefined
+  }, [rawSeries])
   const anomalies = useMemo(() => detectAnomalies(comparisonRuns, anomalyOptions), [comparisonRuns, anomalyOptions])
   const visibleAnomalies = useMemo(() => anomalies.filter((event) => event.metric === metric), [anomalies, metric])
   const anomalyCounts = useMemo(() => visibleAnomalies.reduce((counts, event) => ({ ...counts, [event.type]: (counts[event.type] ?? 0) + 1 }), {}), [visibleAnomalies])
@@ -215,6 +233,11 @@ function App() {
     const nextRules = { ...parserRules, [key]: value }
     setParserRules(nextRules)
     reparseUploadedRuns(nextRules)
+  }
+
+  const removeRun = (id) => {
+    setRuns((current) => current.filter((run) => run.id !== id))
+    if (id === baselineRun?.id) setBaselineId(null)
   }
 
   const handleFiles = async (files) => {
@@ -239,16 +262,17 @@ function App() {
     reparseUploadedRuns(DEFAULT_REGEX_RULES)
   }
   const exportChart = () => {
-    const charts = [rawChartRef.current, errorChartRef.current].filter(Boolean)
+    const charts = [rawChartRef.current, ...Object.values(errorChartRefs.current)].filter((chart) => chart?.isConnected)
     if (!charts.length) return
-    const svg = charts.map((chart) => new XMLSerializer().serializeToString(chart)).join('\n')
+    const svg = exportChartsToSvg(charts, { title: `Moore Loss · ${metric} · ${mode}` })
+    if (!svg) return
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `moore-loss-${metric}-${mode}.svg`; anchor.click(); URL.revokeObjectURL(url)
   }
 
   const relativeBaseline = 0.02
-  const baselineSeries = mode === 'relative_normal'
+  const baselineSeriesFor = (comparison) => mode === 'relative_normal'
     ? [
         { id: 'baseline-positive', label: '+2% baseline', color: '#b54b53', baseline: true, points: comparison.labels.map((step) => ({ step, value: relativeBaseline })) },
         { id: 'baseline-negative', label: '−2% baseline', color: '#b54b53', baseline: true, points: comparison.labels.map((step) => ({ step, value: -relativeBaseline })) },
@@ -260,7 +284,7 @@ function App() {
   return <div className="app-shell">
     <header className="topbar">
       <a href="." className="brand"><span className="brand-mark">M</span><span>Moore <em>Loss</em></span></a>
-      <div className="topbar-actions"><button className="ghost-button language-toggle" onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')} aria-label={ui.languageLabel}>{ui.language}</button><button className="ghost-button" onClick={exportChart} disabled={!comparison.labels.length}><Icon name="download" size={15} /> {ui.export}</button><a className="ghost-button" href="https://github.com" target="_blank" rel="noreferrer"><Icon name="github" size={15} /> {ui.github}</a></div>
+      <div className="topbar-actions"><button className="ghost-button language-toggle" onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')} aria-label={ui.languageLabel}>{ui.language}</button><button className="ghost-button" onClick={exportChart} disabled={!rawSeries.some((series) => series.points.length)}><Icon name="download" size={15} /> {ui.export}</button><a className="ghost-button" href="https://github.com" target="_blank" rel="noreferrer"><Icon name="github" size={15} /> {ui.github}</a></div>
     </header>
 
     <main className="page">
@@ -272,7 +296,7 @@ function App() {
         <aside className="control-rail">
           <div className="rail-header"><div><span className="section-kicker">01 / {ui.sources}</span><h2>{ui.uploadLogs}</h2></div><span className="count-badge">{runs.length}/4</span></div>
           <Dropzone onFiles={handleFiles} language={language} />
-          {runs.length > 0 ? <div className="run-list">{runs.map((run, index) => <RunRow key={run.id} run={run} index={index} language={language} onRemove={(id) => setRuns((current) => current.filter((item) => item.id !== id))} />)}</div> : null}
+          {runs.length > 0 ? <div className="run-list" role="group" aria-label={ui.baseline}>{runs.map((run, index) => <RunRow key={run.id} run={run} index={index} isBaseline={baselineRun?.id === run.id} onSetBaseline={setBaselineId} language={language} onRemove={removeRun} />)}</div> : null}
           {error && <div className="error-message">{error}</div>}
           <div className="rail-divider" />
           <div className="rail-header"><div><span className="section-kicker">02 / {ui.parser}</span><h2>{ui.parseFields}</h2></div><button className="text-button" onClick={resetParserRules}>{ui.reset}</button></div>
@@ -298,7 +322,7 @@ function App() {
               <span className="mode-option-copy"><span className="mode-option-label">{modeLabel(key, language)}</span><span className="mode-option-formula">{value.helper}</span></span>
             </label>)}</div>
           </fieldset>
-          <p className="mode-helper">{language === 'zh' ? 'A = 第一个文件 · B = 第二个文件 · ' : 'A = first file · B = second file · '}{modeConfig.helper}</p>
+          <p className="mode-helper">{language === 'zh' ? 'A = 选定基准 · B = 各对比文件 · ' : 'A = selected baseline · B = each comparison run · '}{modeConfig.helper}</p>
           <div className="threshold-config"><label className="field-label" htmlFor="comparison-threshold">{ui.threshold} <span>{comparisonThreshold.toFixed(2)}</span></label><input id="comparison-threshold" className="threshold-input" type="number" min="0" max="1000000" step="0.01" value={comparisonThreshold} onChange={(event) => setComparisonThreshold(Math.max(0, Number(event.target.value) || 0))} /><p className="threshold-help">{ui.thresholdHelp}</p></div>
           <div className="anomaly-config">
             <div className="section-kicker">05 / {ui.anomalySection}</div>
@@ -315,21 +339,22 @@ function App() {
             <p>{ui.uploadOne}</p>
           </section> : <>
           <div className="chart-stack">
-            <section className="chart-section"><div className="chart-section-head"><div><span className="chart-kicker">{ui.traceOverview}</span><h3>{metric === 'loss' ? ui.loss : ui.gradNorm} {ui.byStep}</h3></div><span className="chart-chip">{rawSeries.reduce((total, item) => total + item.points.length, 0)} {ui.points}</span></div><LineChart series={rawSeries} anomalyMarkers={visibleAnomalies} chartRef={rawChartRef} language={language} chartLabel={`${metric === 'loss' ? ui.loss : ui.gradNorm} curves`} yTitle={metric === 'loss' ? ui.loss : ui.gradNorm} gradientId="rawFade" /></section>
-            {runs.length > 1 && <section className="chart-section"><div className="chart-section-head"><div><span className="chart-kicker">{ui.stepDifference}</span><h3>{modeLabel(mode, language)}</h3></div><span className="chart-chip">{modeConfig.helper}</span></div><LineChart series={[...comparison.errorSeries, ...baselineSeries]} threshold={comparisonThreshold} valueScale={differenceScale} chartRef={errorChartRef} language={language} chartLabel={modeLabel(mode, language)} yTitle={modeLabel(mode, language)} formatAxis={differenceAxisFormat} gradientId="errorFade" signed={modeConfig.signed} isDifference /></section>}
+            <section className="chart-section raw-chart-section"><div className="chart-section-head"><div><span className="chart-kicker">{ui.traceOverview}</span><h3>{metric === 'loss' ? ui.loss : ui.gradNorm} {ui.byStep}</h3></div><span className="chart-chip">{rawSeries.reduce((total, item) => total + item.points.length, 0)} {ui.points}</span></div><LineChart series={rawSeries} xDomain={stepDomain} anomalyMarkers={visibleAnomalies} onChartRef={(node) => { rawChartRef.current = node }} language={language} chartLabel={`${metric === 'loss' ? ui.loss : ui.gradNorm} curves`} yTitle={metric === 'loss' ? ui.loss : ui.gradNorm} gradientId="rawFade" /></section>
+            {comparisonPairs.map(({ baseline, candidate, comparison: pairComparison }, pairIndex) => {
+              const pairId = `${baseline.id}-${candidate.id}`
+              const pairSeries = [...pairComparison.errorSeries, ...baselineSeriesFor(pairComparison)]
+              return <section className="chart-section comparison-chart-section" key={pairId}>
+                <div className="chart-section-head"><div><span className="chart-kicker">{ui.stepDifference}</span><h3>{modeLabel(mode, language)} · {baseline.name} {ui.vs} {candidate.name}</h3></div><span className="chart-chip">{modeConfig.helper}</span></div>
+                <LineChart series={pairSeries} xDomain={stepDomain} threshold={comparisonThreshold} valueScale={differenceScale} onChartRef={(node) => { if (node) errorChartRefs.current[pairId] = node; else delete errorChartRefs.current[pairId] }} language={language} chartLabel={`${modeLabel(mode, language)} · ${baseline.name} ${ui.vs} ${candidate.name}`} yTitle={modeLabel(mode, language)} formatAxis={differenceAxisFormat} gradientId={`errorFade-${pairIndex}`} signed={modeConfig.signed} isDifference emptyMessage={ui.noSharedSteps} />
+                {pairComparison.labels.length > 0 && <div className="pair-summary"><span className="pair-summary-label">{ui.pairStats}</span><div className="summary-grid"><article className="summary-card primary"><span className="summary-label">{ui.meanError}</span><strong className="summary-big summary-error-value">{formatErrorFixed(pairComparison.errorStats.mean, mode)}</strong><span className="summary-muted">{ui.acrossShared}</span></article><article className="summary-card"><span className="summary-label">{ui.meanSquare}</span><strong className="summary-big summary-error-value">{formatErrorFixed(pairComparison.errorStats.meanSquare, mode)}</strong><span className="summary-muted">{ui.squaredAverage}</span></article><article className="summary-card"><span className="summary-label">{ui.maxError}</span><strong className="summary-big summary-error-value">{formatErrorFixed(pairComparison.errorStats.max, mode)}</strong><span className="summary-muted">{ui.absoluteMagnitude}</span></article><article className="summary-card"><span className="summary-label">{ui.minError}</span><strong className="summary-big summary-error-value">{formatErrorFixed(pairComparison.errorStats.min, mode)}</strong><span className="summary-muted">{ui.minimumError}</span></article></div></div>}
+              </section>
+            })}
           </div>
           <section className={`anomaly-panel ${visibleAnomalies.length ? 'has-events' : 'is-clear'}`}>
             <div className="anomaly-panel-head"><div><span className="chart-kicker">{ui.anomalySection}</span><h3>{ui.anomalyEvents}</h3></div><div className="anomaly-counts"><span>{visibleAnomalies.length}</span>{Object.entries(anomalyCounts).map(([type, count]) => <span key={type} className={`anomaly-chip anomaly-${type}`}>{anomalyLabel(type, language)} {count}</span>)}</div></div>
             {visibleAnomalies.length ? <div className="anomaly-table-wrap"><table className="anomaly-table"><thead><tr><th>{ui.eventStep}</th><th>{ui.eventRun}</th><th>{ui.eventMetric}</th><th>{ui.eventType}</th><th>{ui.eventValue}</th></tr></thead><tbody>{visibleAnomalies.slice(0, 20).map((event) => <tr key={event.id}><td>{event.step.toLocaleString()}</td><td title={event.runName}>{event.runName}</td><td>{event.metric === 'loss' ? ui.loss : ui.gradNorm}</td><td><span className="event-type" style={{ '--event-color': anomalyColor(event.type) }}>{anomalyLabel(event.type, language)}</span></td><td>{typeof event.value === 'string' ? event.value : formatValue(event.value, 4)}</td></tr>)}</tbody></table>{visibleAnomalies.length > 20 && <div className="anomaly-more">+ {visibleAnomalies.length - 20} more</div>}</div> : <p className="anomaly-clear">{ui.noAnomalies}</p>}
           </section>
           {runs.length > 1 && <div className="chart-foot"><span>{ui.bothPlots}</span><span>{ui.samplingAverage}</span></div>}
-
-          {runs.length > 1 && <div className="summary-grid">
-            <article className="summary-card primary"><span className="summary-label">{ui.meanError}</span><strong className="summary-big summary-error-value">{formatErrorFixed(comparison.errorStats.mean, mode)}</strong><span className="summary-muted">{ui.acrossShared}</span></article>
-            <article className="summary-card"><span className="summary-label">{ui.meanSquare}</span><strong className="summary-big summary-error-value">{formatErrorFixed(comparison.errorStats.meanSquare, mode)}</strong><span className="summary-muted">{ui.squaredAverage}</span></article>
-            <article className="summary-card"><span className="summary-label">{ui.maxError}</span><strong className="summary-big summary-error-value">{formatErrorFixed(comparison.errorStats.max, mode)}</strong><span className="summary-muted">{ui.absoluteMagnitude}</span></article>
-            <article className="summary-card"><span className="summary-label">{ui.minError}</span><strong className="summary-big summary-error-value">{formatErrorFixed(comparison.errorStats.min, mode)}</strong><span className="summary-muted">{ui.minimumError}</span></article>
-          </div>}
           {runs.length > 1 ? <div className="workspace-note"><span className="note-line" /><p><strong>{ui.readingCharts}</strong> {ui.chartFirst} {ui.chartSecond} {ui.relativeDenominator}</p></div> : <div className="single-run-note"><strong>{ui.singleRun}</strong> {ui.uploadSecond}</div>}
           </>}
         </div>

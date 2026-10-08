@@ -99,6 +99,34 @@ export function buildComparison(runs, metric, mode) {
   }
 }
 
+/**
+ * Build one comparison for every candidate run against a selected baseline.
+ *
+ * `baselineIdOrIndex` accepts either a run id (the value used by the upload
+ * list) or its zero-based index. Keeping the baseline/candidate metadata next
+ * to the existing comparison result lets the UI render one difference chart
+ * per candidate without changing the two-run comparison API.
+ */
+export function buildComparisons(runs, metric, mode, baselineIdOrIndex = 0) {
+  if (!Array.isArray(runs) || runs.length < 2) return []
+
+  const baselineIndex = typeof baselineIdOrIndex === 'number'
+    ? baselineIdOrIndex
+    : runs.findIndex((run) => run?.id === baselineIdOrIndex)
+  const safeBaselineIndex = Number.isInteger(baselineIndex) && baselineIndex >= 0 && baselineIndex < runs.length
+    ? baselineIndex
+    : 0
+  const baseline = runs[safeBaselineIndex]
+
+  return runs
+    .filter((_, index) => index !== safeBaselineIndex)
+    .map((candidate) => ({
+      baseline,
+      candidate,
+      comparison: buildComparison([baseline, candidate], metric, mode),
+    }))
+}
+
 export function formatValue(value, digits = 4) {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—'
   if (Math.abs(value) >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 1 })

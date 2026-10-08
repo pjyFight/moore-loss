@@ -1,17 +1,17 @@
 # Moore Loss
 
-Browser-only training trace comparison for loss and gradient norm signals. Upload up to four logs, choose a metric, bucket the points by sampling step, and compare two runs with four TrainingLogParser-style views. The default is Comparison absolute.
+Browser-only training trace comparison for loss and gradient norm signals. Upload up to four logs, choose a metric, bucket the points by sampling step, and compare a selected baseline against every other uploaded run with four TrainingLogParser-style views. The default is Comparison absolute.
 
-The page starts empty: no logs, demonstration curves, or sample metrics are preloaded. Upload two local files (together or one at a time) to begin. Sampling step defaults to **1**, preserving the original logged points without bucket averaging. The four comparison modes are shown as a vertical radio list with their formulas.
+The page starts empty: no logs, demonstration curves, or sample metrics are preloaded. Upload local files (together or one at a time) to begin. Sampling step defaults to **1**, preserving the original logged points without bucket averaging. The four comparison modes are shown as a vertical radio list with their formulas. Choose the baseline from the uploaded-file list; it is used as `A` for every pairwise comparison.
 
-For the first two visible files (`A` = first file, `B` = second file), the comparison modes are ordered as:
+For each pair (`A` = selected baseline, `B` = one other uploaded file), the comparison modes are ordered as:
 
 - `Comparison absolute`: `|A − B|`
 - `Comparison relative absolute`: `|(A − B) / A|`
 - `Comparison normal`: `A − B`
 - `Comparison relative normal`: `(A − B) / A`
 
-With one uploaded file, the first chart immediately shows that file's raw loss or grad norm trace and the comparison chart is hidden. With two files, the first chart overlays both raw traces and the second chart shows the selected per-step difference. Relative modes include a 2% reference line. `Min Error` follows TrainingLogParser's minimum error value (signed for normal modes). Charts support hover crosshairs and values; zoom is controlled only by the `＋` / `−` buttons, with `Reset` available to restore the full range. Mouse-wheel and double-click zoom controls are intentionally disabled. If the runs have no shared steps (after sampling), the tool displays an empty-state message rather than comparing unrelated measurements.
+With one uploaded file, the first chart immediately shows that file's raw loss or grad norm trace and comparison charts are hidden. With multiple files, the first chart overlays every raw trace and one difference chart is rendered for each non-baseline file. Each pair uses only its own shared valid steps, so unrelated measurements are not compared. Relative modes include a 2% reference line. `Min Error` follows TrainingLogParser's minimum error value (signed for normal modes). Charts support hover crosshairs and values; zoom is controlled only by the `＋` / `−` buttons, with `Reset` available to restore the full range. Mouse-wheel and double-click zoom controls are intentionally disabled.
 
 The parser rules panel accepts editable regular expressions. The first capture group is interpreted as the numeric value, matching the drag-and-regex workflow of TrainingLogParser.
 
@@ -25,7 +25,7 @@ The top-right language control switches the interface between English and Chines
 - CSV with a header row
 - Plain text lines such as `step=1200 loss=0.42 grad_norm=1.08`
 
-All parsing happens locally in the browser. The first two loaded runs are used for the comparison; additional files remain available in the source list.
+All parsing happens locally in the browser. Every uploaded run is included in the raw trace chart, and each non-baseline run gets its own pairwise comparison chart.
 
 Ready-to-use sample logs are included in [`sample_logs/`](./sample_logs/): `baseline.log`, `moore.log`, and `anomaly.log` (contains a loss spike, gradient explosion, NaN, and Inf examples).
 
