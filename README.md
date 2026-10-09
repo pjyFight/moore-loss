@@ -13,7 +13,19 @@ For each pair (`A` = selected baseline, `B` = one other uploaded file), the comp
 
 With one uploaded file, the first chart immediately shows that file's raw loss or grad norm trace and comparison charts are hidden. With multiple files, the first chart overlays every raw trace and one difference chart is rendered for each non-baseline file. Each pair uses only its own shared valid steps, so unrelated measurements are not compared. Relative modes include a 2% reference line. `Min Error` follows TrainingLogParser's minimum error value (signed for normal modes). Charts support hover crosshairs and values; zoom is controlled only by the `＋` / `−` buttons, with `Reset` available to restore the full range. Mouse-wheel and double-click zoom controls are intentionally disabled.
 
-The parser rules panel accepts editable regular expressions. The first capture group is interpreted as the numeric value, matching the drag-and-regex workflow of TrainingLogParser.
+The raw loss/grad-norm overview always uses a zero-origin Y axis with a readable, widened scale. Difference charts keep their signed or threshold-aware adaptive domain. X-axis ticks stay on integer training steps and aim for about eleven labels (for example, `0, 10, ... 100`), with spacing adjusted to avoid crowded endpoints and long step labels.
+
+The parser rules panel has two modes: **By example** (the default) and **Regex**. Sample mode lets users paste examples such as `Step 1/100` and select `1`, or `'grad_norm': 1.4609375` and select `1.4609375`; the tool generates a reusable rule automatically. Regex mode remains available for power users. Both modes require an explicit Step plus at least one matched metric and never use line-number or fuzzy-key fallback, so unrelated configuration values cannot become training points. Draft rules can be tested in the live preview and only change charts after clicking **Apply rules**. Expanded generated rules wrap within their cards; very long rules scroll locally without widening the sidebar.
+
+For logs shaped like `Step 1/100: {'grad_norm': 1.46, 'Loss/train_loss': 2.64}`, the **Load example inputs** preset fills the sample fields. The generated rules are equivalent to:
+
+```text
+Step:      Step\s+(\d+)\s*/\s*\d+
+Loss:      ["']Loss/train_loss["']\s*:\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|NaN|Inf)
+Grad norm: ["']grad_norm["']\s*:\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?|NaN|Inf)
+```
+
+The UI lists every numeric token found in each example. For `Step 1/100`, users can explicitly select `1` rather than `100`; the chosen value is highlighted. The sample/regex preview reports matched rows, per-field matches, step range, duplicate steps, source lines, and parsed sample points before the rules are applied. Loss and Grad norm are individually optional, but Step and at least one metric are required.
 
 Anomaly detection preserves `NaN` and `Inf` records, flags upward spikes when a value exceeds the previous valid value by the configured spike factor, and flags gradient explosions using a rolling median/MAD baseline plus the configured explosion factor. Events are marked on the raw curve and listed below the charts. The left panel exposes detection enablement, spike factor, and explosion factor controls.
 
@@ -71,5 +83,7 @@ After that, every push to `main` rebuilds and redeploys the site automatically. 
 ## Design notes
 
 - `src/utils/parseLog.js` contains format detection, aliases, and step bucketing.
+- `src/utils/sampleRules.js` generates strict parsing rules from user-provided examples and selected values.
 - `src/utils/compare.js` owns the comparison math and formatting.
+- `src/utils/chartDomain.js` owns readable Y-axis domains and integer training-step ticks.
 - `src/main.jsx` keeps the UI composition and SVG chart renderer together so the exported SVG matches the visible chart.

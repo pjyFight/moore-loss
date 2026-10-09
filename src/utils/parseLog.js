@@ -10,6 +10,102 @@ export const DEFAULT_REGEX_RULES = {
   gradNorm: '(?:grad_norm|gradNorm|gradient_norm|gradientNorm|grad)\\s*[:=]\\s*([-+]?\\d*\\.?\\d+(?:[eE][-+]?\\d+)?)',
 }
 
+export function validateRegexRules(rules = {}, { requireStep = true } = {}) {
+  const errors = []
+  const validate = (field, required = false) => {
+    const source = typeof rules[field] === 'string' ? rules[field].trim() : ''
+    if (!source) return required ? `${field} regex is required` : null
+    const result = validateRegexRule(source)
+    return result.valid ? null : `${field} regex is invalid: ${result.error}`
+  }
+  const stepError = validate('step', requireStep)
+  if (stepError) errors.push(stepError)
+  const lossError = validate('loss')
+  if (lossError) errors.push(lossError)
+  const gradError = validate('gradNorm')
+  if (gradError) errors.push(gradError)
+  if (!(String(rules.loss ?? '').trim() || String(rules.gradNorm ?? '').trim())) errors.push('At least one metric regex (Loss or Grad norm) is required')
+  return errors
+}
+
+/**
+ * Count the capturing groups in a regular-expression source string.
+ *
+ * JavaScript's RegExp API does not expose the number of capture groups without
+ * executing the expression, so we scan the source while accounting for
+ * escaped characters and character classes.  Non-capturing groups and the
+ * lookaround forms are deliberately excluded; named groups are captures.
+ */
+const countCapturingGroups = (source) => {
+  let count = 0
+  let escaped = false
+  let inCharacterClass = false
+
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index]
+    if (escaped) {
+      escaped = false
+      continue
+    }
+    if (character === '\\') {
+      escaped = true
+      continue
+    }
+    if (character === '[' && !inCharacterClass) {
+      inCharacterClass = true
+      continue
+    }
+    if (character === ']' && inCharacterClass) {
+      inCharacterClass = false
+      continue
+    }
+    if (character !== '(' || inCharacterClass) continue
+
+    if (source[index + 1] !== '?') {
+      count += 1
+      continue
+    }
+
+    // (?<name>...) is a named capture. (?<=...) and (?<!...) are lookbehind
+    // assertions and therefore are not captures.
+    if (source[index + 2] === '<' && !['=', '!'].includes(source[index + 3])) count += 1
+  }
+
+  return count
+}
+
+/**
+ * Validate an exact-mode regex rule.
+ *
+ * Exact rules intentionally require one (and only one) capturing group. The
+ * first capture is the value extracted from a matching line; non-capturing
+ * groups such as (?:...) are safe to use for the surrounding syntax.
+ */
+export function validateRegexRule(rule) {
+  if (rule instanceof RegExp) rule = rule.source
+  if (typeof rule !== 'string' || !rule.trim()) {
+    return { valid: false, captureGroups: 0, error: 'Rule is empty' }
+  }
+
+  let expression
+  try {
+    expression = new RegExp(rule, 'i')
+  } catch (error) {
+    return { valid: false, captureGroups: 0, error: error instanceof Error ? error.message : 'Invalid regular expression' }
+  }
+
+  const captureGroups = countCapturingGroups(rule)
+  if (captureGroups !== 1) {
+    return {
+      valid: false,
+      captureGroups,
+      error: `Rule must contain exactly one capturing group; found ${captureGroups}`,
+    }
+  }
+
+  return { valid: true, captureGroups, error: null, expression }
+}
+
 const toNumber = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value !== 'string') return null
@@ -21,6 +117,7 @@ const parseNumericToken = (value) => {
   if (typeof value === 'number' && Number.isFinite(value)) return { value, invalid: null }
   if (typeof value !== 'string') return { value: null, invalid: null }
   const token = value.replace(/,/g, '').trim()
+  if (!token) return { value: null, invalid: null }
   if (NONFINITE_RE.test(token)) return { value: null, invalid: token.toLowerCase().includes('nan') ? 'NaN' : 'Inf', raw: token }
   const parsed = Number(token)
   return Number.isFinite(parsed) ? { value: parsed, invalid: null } : { value: null, invalid: null }
@@ -103,22 +200,137 @@ function parseLine(line, index, regexRules = DEFAULT_REGEX_RULES) {
   return { step, loss, gradNorm, ...(anomalies.length ? { anomalies } : {}) }
 }
 
+/**
+ * Parse one line in exact mode. Unlike automatic parsing this function never
+ * falls back to key matching or a line-number step. A point is emitted only
+ * when its step and at least one metric match the supplied rules.
+ */
+function parseLineExact(line, regexRules = DEFAULT_REGEX_RULES, compiledRules = null) {
+  const rules = compiledRules ?? Object.fromEntries(['step', 'loss', 'gradNorm'].map((field) => {
+    const rule = regexRules?.[field]
+    const validation = validateRegexRule(rule)
+    return [field, validation.valid ? validation.expression : null]
+  }))
+
+  const extract = (field) => {
+    const expression = rules[field]
+    if (!expression) return null
+    const match = line.match(expression)
+    if (!match || match[1] === undefined) return null
+    return parseNumericToken(match[1])
+  }
+
+  const stepToken = extract('step')
+  // A non-finite/invalid step cannot identify a training point. It is treated
+  // as missing and the line is skipped, just like a line without a step.
+  if (!stepToken || stepToken.value === null) return null
+
+  const lossToken = extract('loss')
+  const gradToken = extract('gradNorm')
+  const hasLoss = Boolean(lossToken && (lossToken.value !== null || lossToken.invalid))
+  const hasGrad = Boolean(gradToken && (gradToken.value !== null || gradToken.invalid))
+  if (!hasLoss && !hasGrad) return null
+
+  const anomalies = []
+  if (lossToken?.invalid) anomalies.push({ metric: 'loss', type: lossToken.invalid, raw: lossToken.raw })
+  if (gradToken?.invalid) anomalies.push({ metric: 'gradNorm', type: gradToken.invalid, raw: gradToken.raw })
+
+  return {
+    step: stepToken.value,
+    loss: lossToken?.value ?? null,
+    gradNorm: gradToken?.value ?? null,
+    ...(anomalies.length ? { anomalies } : {}),
+  }
+}
+
+/**
+ * Return lightweight, UI-friendly feedback for a draft exact rule set.
+ * Previewing never throws for malformed input; errors are returned so the
+ * editor can keep the last applied chart intact while the user is typing.
+ */
+export function previewLogText(text, regexRules = DEFAULT_REGEX_RULES, sampleLimit = 4) {
+  const source = typeof text === 'string' ? text : ''
+  const lines = source.split(/\r?\n/).filter((line) => line.trim())
+  const fields = ['step', 'loss', 'gradNorm']
+  const errors = validateRegexRules(regexRules)
+  const compiledRules = {}
+  for (const field of fields) {
+    const rule = regexRules?.[field]
+    if (!String(rule ?? '').trim()) {
+      compiledRules[field] = null
+      continue
+    }
+    const validation = validateRegexRule(rule)
+    compiledRules[field] = validation.valid ? validation.expression : null
+  }
+  const fieldMatches = { step: 0, loss: 0, gradNorm: 0 }
+  const rows = []
+  if (!errors.length) {
+    lines.forEach((line) => {
+      for (const field of fields) {
+        const expression = compiledRules[field]
+        const token = expression ? parseNumericToken(line.match(expression)?.[1]) : null
+        if (token && (Number.isFinite(token.value) || token.invalid)) fieldMatches[field] += 1
+      }
+      const stepToken = parseNumericToken(line.match(compiledRules.step)?.[1])
+      if (!Number.isFinite(stepToken.value)) return
+      const point = parseLineExact(line, regexRules, compiledRules)
+      if (!point) return
+      rows.push({ source: line, point })
+    })
+  }
+  const points = rows.map((row) => row.point)
+  const steps = points.map((point) => point.step)
+  const duplicateSteps = steps.length - new Set(steps).size
+  let minStep = Infinity
+  let maxStep = -Infinity
+  for (const step of steps) {
+    minStep = Math.min(minStep, step)
+    maxStep = Math.max(maxStep, step)
+  }
+  return {
+    lineCount: lines.length,
+    matchedRows: points.length,
+    fieldMatches,
+    stepRange: steps.length ? [minStep, maxStep] : null,
+    duplicateSteps,
+    samples: points.slice(0, sampleLimit).map((point) => ({ ...point })),
+    sampleRows: rows.slice(0, sampleLimit),
+    errors,
+  }
+}
+
 export function parseLogText(text, fileName = 'training.log', options = {}) {
   const trimmed = text.trim()
   if (!trimmed) throw new Error(`${fileName} is empty`)
 
+  const exactMode = options.mode === 'exact' || options.strict === true
   let points = []
-  const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[')
-  if (looksLikeJson) {
-    try { points = parseJson(trimmed) } catch { points = [] }
-  }
-  if (!points.length) points = parseDelimited(trimmed)
-  if (!points.length) {
-    points = trimmed.split(/\r?\n/).map((line, index) => parseLine(line, index, options.regexRules)).filter((point) => point.loss !== null || point.gradNorm !== null || point.anomalies?.length)
+
+  if (exactMode) {
+    const regexRules = options.regexRules ?? DEFAULT_REGEX_RULES
+    const validationErrors = validateRegexRules(regexRules)
+    if (validationErrors.length) throw new Error(validationErrors[0])
+    const validations = ['step', 'loss', 'gradNorm']
+      .map((field) => [field, validateRegexRule(regexRules[field])])
+    const compiledRules = Object.fromEntries(validations.map(([field, validation]) => [field, validation.valid ? validation.expression : null]))
+    points = trimmed.split(/\r?\n/)
+      .map((line) => parseLineExact(line, regexRules, compiledRules))
+      .filter(Boolean)
+  } else {
+    const looksLikeJson = trimmed.startsWith('{') || trimmed.startsWith('[')
+    if (looksLikeJson) {
+      try { points = parseJson(trimmed) } catch { points = [] }
+    }
+    if (!points.length) points = parseDelimited(trimmed)
+    if (!points.length) {
+      points = trimmed.split(/\r?\n/).map((line, index) => parseLine(line, index, options.regexRules)).filter((point) => point.loss !== null || point.gradNorm !== null || point.anomalies?.length)
+    }
   }
 
   const clean = points
-    .map((point, index) => ({ step: Number.isFinite(point.step) ? point.step : index, loss: point.loss, gradNorm: point.gradNorm, ...(point.anomalies?.length ? { anomalies: point.anomalies } : {}) }))
+    .map((point, index) => ({ step: Number.isFinite(point.step) ? point.step : (exactMode ? null : index), loss: point.loss, gradNorm: point.gradNorm, ...(point.anomalies?.length ? { anomalies: point.anomalies } : {}) }))
+    .filter((point) => !exactMode || Number.isFinite(point.step))
     .sort((a, b) => a.step - b.step)
   if (!clean.length) {
     throw new Error(`No loss or grad norm values found in ${fileName}`)

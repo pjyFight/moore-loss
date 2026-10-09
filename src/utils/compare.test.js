@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildComparison, buildComparisons, COMPARISON_MODES, formatErrorFixed } from './compare.js'
+import { buildComparison, buildComparisons, COMPARISON_MODES, formatErrorFixed, formatValue } from './compare.js'
 
 const runs = [
   { name: 'A', color: '#6d5dfc', points: [
@@ -84,6 +84,7 @@ test('run names containing baseline are still treated as ordinary traces', () =>
 })
 
 test('summary error formatting preserves eight decimal places', () => {
+  assert.equal(formatValue(0), '0')
   assert.equal(formatErrorFixed(0.0712345, 'absolute'), '0.07123450')
   assert.equal(formatErrorFixed(-0.0000001, 'normal'), '-0.00000010')
   assert.equal(formatErrorFixed(0.123456789, 'relative_abs'), '12.34567890%')

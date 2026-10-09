@@ -129,6 +129,7 @@ export function buildComparisons(runs, metric, mode, baselineIdOrIndex = 0) {
 
 export function formatValue(value, digits = 4) {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—'
+  if (value === 0) return '0'
   if (Math.abs(value) >= 1000) return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
   if (Math.abs(value) < 0.001) return value.toExponential(2)
   return value.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '')
