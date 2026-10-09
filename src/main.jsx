@@ -147,7 +147,6 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
         {visibleSeries.map((item, seriesIndex) => <g key={item.id}>
           {seriesIndex === 0 && <path d={`${pathFor(item.points)} L ${x(item.points.at(-1).step)} ${height - pad.bottom} L ${x(item.points[0].step)} ${height - pad.bottom} Z`} fill={`url(#${gradientId})`} opacity="0.65" />}
           <path d={pathFor(item.points)} fill="none" stroke={item.color} strokeWidth={item.baseline ? "1.5" : "3"} strokeDasharray={item.baseline ? "6 6" : undefined} strokeLinecap="round" strokeLinejoin="round" />
-          {!item.baseline && item.points.filter((_, index) => index % Math.max(1, Math.floor(item.points.length / 12)) === 0).map((point) => <circle key={`${item.id}-${point.step}`} cx={x(point.step)} cy={y(point.value)} r="3.6" fill="#fff" stroke={item.color} strokeWidth="2" />)}
         </g>)}
         {anomalyMarkers.filter((event) => event.step >= xMin && event.step <= xMax).map((event) => {
           const source = plotSeries.find((item) => item.id === event.runId)
