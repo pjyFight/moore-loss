@@ -7,6 +7,7 @@ import { anomalyColor, detectAnomalies } from './utils/anomalies'
 import { exportChartsToSvg } from './utils/exportCharts'
 import { getIntegerStepTicks, getYDomain } from './utils/chartDomain'
 import { buildSampleRules, findSampleValues, SAMPLE_RULE_FIELDS } from './utils/sampleRules'
+import { buildUploadFeedback } from './utils/uploadFeedback'
 
 const COLORS = ['#6d5dfc', '#17b992', '#e76f51', '#f2a93b']
 
@@ -229,7 +230,7 @@ function App() {
   const [metric, setMetric] = useState('loss')
   const [mode, setMode] = useState('absolute')
   const [sampleStep, setSampleStep] = useState(1)
-  const [error, setError] = useState('')
+  const [fileReadError, setFileReadError] = useState('')
   const [parserMode, setParserMode] = useState('sample')
   const [activeParserMode, setActiveParserMode] = useState('sample')
   const [parserRules, setParserRules] = useState(DEFAULT_REGEX_RULES)
@@ -248,6 +249,7 @@ function App() {
   const comparisonPairs = useMemo(() => buildComparisons(comparisonRuns, metric, mode, baselineRun?.id), [comparisonRuns, metric, mode, baselineRun?.id])
   const modeConfig = COMPARISON_MODES[mode]
   const ui = I18N[language]
+  const uploadFeedback = buildUploadFeedback(runs, fileReadError, ui.uploadKept)
   const differenceScale = modeConfig.relative ? 100 : 1
   const differenceAxisFormat = (value) => modeConfig.relative ? `${value.toFixed(2)}%` : formatValue(value, 2)
   const rawSeries = useMemo(() => comparisonRuns.map((run) => ({ id: run.id, label: run.name, color: run.color, points: run.points.flatMap((point) => Number.isFinite(point[metric]) ? [{ step: point.step, value: point[metric] }] : []) })), [comparisonRuns, metric])
@@ -367,9 +369,9 @@ function App() {
   }
 
   const handleFiles = async (files) => {
-    setError('')
+    setFileReadError('')
     const parsedRuns = []
-    const uploadErrors = []
+    const readErrors = []
     for (const [index, file] of files.slice(0, 4).entries()) {
       try {
         const rawText = await file.text()
@@ -377,12 +379,11 @@ function App() {
         let parseError = null
         try { points = parseLogText(rawText, file.name, parseOptionsFor(activeParserMode, parserRules)) } catch (failure) {
           parseError = failure.message
-          uploadErrors.push(`${file.name}: ${ui.uploadKept}`)
         }
         parsedRuns.push({ id: `${file.name}-${file.lastModified}-${file.size}`, name: file.name, source: 'file', rawText, points, parseError, color: COLORS[index % COLORS.length] })
-      } catch (failure) { uploadErrors.push(`${file.name}: ${failure.message}`) }
+      } catch (failure) { readErrors.push(`${file.name}: ${failure.message}`) }
     }
-    if (uploadErrors.length) setError(uploadErrors.join('\n'))
+    setFileReadError(readErrors.join('\n'))
     if (parsedRuns.length) setRuns((current) => {
       const combined = new Map(current.map((run) => [run.id, run]))
       parsedRuns.forEach((run) => combined.set(run.id, run))
@@ -432,7 +433,7 @@ function App() {
           <div className="rail-header"><div><span className="section-kicker">01 / {ui.sources}</span><h2>{ui.uploadLogs}</h2></div><span className="count-badge">{runs.length}/4</span></div>
           <Dropzone onFiles={handleFiles} language={language} />
           {runs.length > 0 ? <div className="run-list" role="group" aria-label={ui.baseline}>{runs.map((run, index) => <RunRow key={run.id} run={run} index={index} isBaseline={baselineRun?.id === run.id} onSetBaseline={setBaselineId} language={language} onRemove={removeRun} />)}</div> : null}
-          {error && <div className="error-message">{error}</div>}
+          {uploadFeedback && <div className="error-message" role="status">{uploadFeedback}</div>}
           <div className="rail-divider" />
           <div className="rail-header"><div><span className="section-kicker">02 / {ui.parser}</span><h2>{ui.parseFields}</h2></div><button className="text-button" onClick={resetParserRules}>{ui.reset}</button></div>
           <p className="parser-help">{ui.parserHelp}</p>
