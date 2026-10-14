@@ -1,4 +1,4 @@
-import React, { useDeferredValue, useMemo, useRef, useState } from 'react'
+import React, { useDeferredValue, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
 import { buildComparisons, COMPARISON_MODES, formatErrorFixed, formatValue } from './utils/compare'
@@ -86,9 +86,27 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
   const innerWidth = width - pad.left - pad.right
   const innerHeight = height - pad.top - pad.bottom
   const svgRef = useRef(null)
+  const frameRef = useRef(null)
+  const tooltipRef = useRef(null)
   const [zoom, setZoom] = useState(null)
   const [hoverStep, setHoverStep] = useState(null)
   const [hoverPosition, setHoverPosition] = useState(null)
+  const [tooltipLeft, setTooltipLeft] = useState(null)
+  useLayoutEffect(() => {
+    if (hoverStep === null || !hoverPosition || !frameRef.current || !svgRef.current || !tooltipRef.current) {
+      setTooltipLeft((previous) => previous === null ? previous : null)
+      return
+    }
+    const frameRect = frameRef.current.getBoundingClientRect()
+    const svgRect = svgRef.current.getBoundingClientRect()
+    const tooltipWidth = tooltipRef.current.offsetWidth
+    const preferredLeft = (svgRect.left - frameRect.left) + (hoverPosition.xPercent / 100) * svgRect.width
+    const edgePadding = 12
+    const minLeft = edgePadding + tooltipWidth / 2
+    const maxLeft = Math.max(minLeft, frameRect.width - edgePadding - tooltipWidth / 2)
+    const nextLeft = Math.min(maxLeft, Math.max(minLeft, preferredLeft))
+    setTooltipLeft((previous) => previous === nextLeft ? previous : nextLeft)
+  }, [hoverPosition, hoverStep, language, isDifference, series.length])
   const allPoints = series.flatMap((item) => item.points)
   if (!allPoints.length) {
     return <div className="chart-empty" role="status">{emptyMessage ?? ui.noValues}</div>
@@ -130,7 +148,7 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
     setZoom([nextMin, nextMin + nextRange])
   }
   return (
-    <div className="chart-frame">
+    <div ref={frameRef} className="chart-frame">
       <div className="chart-toolbar"><span>{ui.hoverZoom}</span><span className="chart-toolbar-actions"><button type="button" onClick={() => zoomAt(.75)} aria-label="Zoom in">＋</button><button type="button" onClick={() => zoomAt(1.35)} aria-label="Zoom out">−</button><button type="button" onClick={() => setZoom(null)} aria-label={ui.reset}>{ui.reset}</button></span></div>
       {!isDifference && <div className="chart-legend" aria-label={language === 'zh' ? '文件图例' : 'File legend'}>{series.filter((item) => !item.baseline && item.points.length).map((item) => <span key={item.id}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
       <svg ref={(node) => { svgRef.current = node; onChartRef?.(node) }} className="trace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onMouseMove={(event) => { const point = readPoint(event); setHoverStep(point?.step ?? null); setHoverPosition(point) }} onMouseLeave={() => { setHoverStep(null); setHoverPosition(null) }}>
@@ -146,7 +164,7 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
         <text x={width - pad.right} y={height - 8} textAnchor="end" className="axis-title">{ui.trainingStep}</text>
         {visibleSeries.map((item, seriesIndex) => <g key={item.id}>
           {seriesIndex === 0 && <path d={`${pathFor(item.points)} L ${x(item.points.at(-1).step)} ${height - pad.bottom} L ${x(item.points[0].step)} ${height - pad.bottom} Z`} fill={`url(#${gradientId})`} opacity="0.65" />}
-          <path d={pathFor(item.points)} fill="none" stroke={item.color} strokeWidth={item.baseline ? "1.5" : "3"} strokeDasharray={item.baseline ? "6 6" : undefined} strokeLinecap="round" strokeLinejoin="round" />
+          <path d={pathFor(item.points)} fill="none" stroke={item.color} strokeWidth={item.baseline ? "1.5" : isDifference ? "3" : "2"} strokeDasharray={item.baseline ? "6 6" : undefined} strokeLinecap="round" strokeLinejoin="round" />
         </g>)}
         {anomalyMarkers.filter((event) => event.step >= xMin && event.step <= xMax).map((event) => {
           const source = plotSeries.find((item) => item.id === event.runId)
@@ -157,7 +175,7 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
         {thresholdValue !== null && <g className="threshold-line"><line x1={pad.left} x2={width - pad.right} y1={y(thresholdValue)} y2={y(thresholdValue)} stroke="#d14d5c" strokeWidth="2" strokeDasharray="8 6" /><text x={width - pad.right - 4} y={y(thresholdValue) - 8} textAnchor="end" className="threshold-label">{ui.threshold} {formatAxis(thresholdValue)}</text>{signed && <><line x1={pad.left} x2={width - pad.right} y1={y(-thresholdValue)} y2={y(-thresholdValue)} stroke="#d14d5c" strokeWidth="2" strokeDasharray="8 6" /><text x={width - pad.right - 4} y={y(-thresholdValue) + 17} textAnchor="end" className="threshold-label">−{formatAxis(thresholdValue)}</text></>}</g>}
         {hoverX !== null && <g className="chart-hover"><line x1={hoverX} x2={hoverX} y1={pad.top} y2={height - pad.bottom} stroke="#6d5dfc" strokeDasharray="4 4" opacity=".65" />{hoverValues.filter((item) => item.point).map((item) => <circle key={item.id} cx={hoverX} cy={y(item.point.value)} r="5" fill="#fff" stroke={item.color} strokeWidth="2.5" />)}</g>}
       </svg>
-      {hoverStep !== null && hoverValues.length > 0 && <div className="chart-tooltip" style={{ left: `${Math.min(94, Math.max(6, hoverPosition?.xPercent ?? 50))}%`, top: `calc(36px + ${Math.min(72, Math.max(6, hoverPosition?.yPercent ?? 35))}%)`, transform: `translateX(-50%) ${((hoverPosition?.yPercent ?? 35) > 58) ? 'translateY(-110%)' : 'translateY(12px)'}` }}><strong>{language === 'zh' ? '步数' : 'step'} {hoverStep.toLocaleString()}</strong>{hoverValues.map((item) => <span key={item.id}><i style={{ background: item.color }} /><span className="tooltip-run-name" title={item.displayLabel}>{item.displayLabel}:</span> <b>{item.point ? formatAxis(item.point.value) : '—'}</b></span>)}</div>}
+      {hoverStep !== null && hoverValues.length > 0 && <div ref={tooltipRef} className="chart-tooltip" style={{ left: tooltipLeft === null ? `${Math.min(94, Math.max(6, hoverPosition?.xPercent ?? 50))}%` : `${tooltipLeft}px`, top: `calc(36px + ${Math.min(72, Math.max(6, hoverPosition?.yPercent ?? 35))}%)`, transform: `${tooltipLeft === null ? 'translateX(-50%) ' : ''}${((hoverPosition?.yPercent ?? 35) > 58) ? 'translateY(-110%)' : 'translateY(12px)'}` }}><strong>{language === 'zh' ? '步数' : 'step'} {hoverStep.toLocaleString()}</strong>{hoverValues.map((item) => <span key={item.id}><i style={{ background: item.color }} /><span className="tooltip-run-name" title={item.displayLabel}>{item.displayLabel}:</span> <b>{item.point ? formatAxis(item.point.value) : '—'}</b></span>)}</div>}
     </div>
   )
 }

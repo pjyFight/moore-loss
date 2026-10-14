@@ -5,6 +5,7 @@ import test from 'node:test'
 // These source-contract checks protect the chart's JSX marker layers. They are
 // not browser-tested rendering or interaction checks.
 const source = readFileSync(new URL('../main.jsx', import.meta.url), 'utf8')
+const styles = readFileSync(new URL('../styles.css', import.meta.url), 'utf8')
 
 function sectionBetween(start, end, text = source) {
   const startIndex = text.indexOf(start)
@@ -20,6 +21,19 @@ test('normal series keep their line paths without persistent point circles', () 
   const layer = sectionBetween('{visibleSeries.map(', '{anomalyMarkers.filter(', lineChart)
   assert.match(layer, /<path\b[^>]*\bd=\{pathFor\(item\.points\)\}/)
   assert.doesNotMatch(layer, /<circle\b/)
+})
+
+test('raw precision curves are thinner while comparison curves keep their emphasis', () => {
+  const layer = sectionBetween('{visibleSeries.map(', '{anomalyMarkers.filter(', lineChart)
+  assert.match(layer, /strokeWidth=\{item\.baseline \? "1\.5" : isDifference \? "3" : "2"\}/)
+})
+
+test('long run names can wrap inside a measured, edge-safe tooltip', () => {
+  assert.match(styles, /\.chart-tooltip \{[^}]*width: max-content;/)
+  assert.match(styles, /\.chart-tooltip \{[^}]*max-width: min\(420px, calc\(100% - 24px\)\);/)
+  assert.match(styles, /\.chart-tooltip \.tooltip-run-name \{[^}]*overflow-wrap: anywhere;/)
+  assert.match(source, /const tooltipWidth = tooltipRef\.current\.offsetWidth/)
+  assert.match(source, /const maxLeft = Math\.max\(minLeft, frameRect\.width - edgePadding - tooltipWidth \/ 2\)/)
 })
 
 test('anomaly markers retain their circles and dashed vertical guides', () => {

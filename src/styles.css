@@ -192,12 +192,13 @@ select:focus, input:focus-visible, button:focus-visible, a:focus-visible { outli
 .trace-chart { display: block; width: 100%; height: auto; min-height: 240px; }
 .trace-chart { touch-action: none; cursor: crosshair; }
 .trace-chart:active { cursor: ew-resize; }
-.chart-tooltip { position: absolute; top: 36px; transform: translateX(-50%); z-index: 2; min-width: 165px; max-width: 290px; padding: 10px 12px; border-radius: 8px; background: rgba(29,36,51,.96); color: #f4f6fb; box-shadow: 0 8px 22px rgba(29,36,51,.18); pointer-events: none; font: 10px/1.45 'DM Mono', monospace; }
-.chart-tooltip strong, .chart-tooltip span { display: block; }
+.chart-tooltip { position: absolute; top: 36px; z-index: 2; width: max-content; min-width: 165px; max-width: min(420px, calc(100% - 24px)); padding: 10px 12px; border-radius: 8px; background: rgba(29,36,51,.96); color: #f4f6fb; box-shadow: 0 8px 22px rgba(29,36,51,.18); pointer-events: none; font: 10px/1.45 'DM Mono', monospace; }
+.chart-tooltip > strong, .chart-tooltip > span { display: block; }
 .chart-tooltip strong { color: #fff; margin-bottom: 6px; font-weight: 600; }
-.chart-tooltip span { display: flex; align-items: baseline; gap: 6px; color: #d6dbe7; white-space: nowrap; }
+.chart-tooltip > span { display: flex; align-items: baseline; gap: 6px; min-width: 0; color: #d6dbe7; white-space: normal; }
 .chart-tooltip i { width: 7px; height: 7px; flex: none; border-radius: 50%; display: inline-block; }
-.chart-tooltip b { color: #fff; font-weight: 600; margin-left: auto; }
+.chart-tooltip .tooltip-run-name { min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+.chart-tooltip b { flex: none; color: #fff; font-weight: 600; margin-left: auto; white-space: nowrap; }
 .tooltip-title, .tooltip-value { font: 10px 'DM Mono', monospace; }
 .tooltip-title { fill: #fff; font-weight: 600; }
 .tooltip-value { fill: #f2f4f8; }
