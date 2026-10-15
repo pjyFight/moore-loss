@@ -141,7 +141,8 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
     return { step: labels.reduce((closest, candidate) => Math.abs(candidate - step) < Math.abs(closest - step) ? candidate : closest, labels[0]), xPercent: (svgX / width) * 100, yPercent: (svgY / height) * 100 }
   }
   const handlePointerDown = (event) => {
-    if (!zoom || event.button !== 0) return
+    const isPrimaryButton = event.button == null || event.button === 0 || event.button === -1
+    if (!zoom || !isPrimaryButton || panRef.current) return
     event.preventDefault()
     try {
       event.currentTarget.setPointerCapture?.(event.pointerId)
@@ -156,7 +157,7 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
   const handlePointerMove = (event) => {
     const pan = panRef.current
     if (pan) {
-      if (pan.pointerId !== event.pointerId) return
+      if (pan.pointerId != null && event.pointerId != null && pan.pointerId !== event.pointerId) return
       const rect = svgRef.current?.getBoundingClientRect()
       if (!rect) return
       const plotWidth = rect.width * (innerWidth / width)
@@ -171,7 +172,7 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
   }
   const finishPointerPan = (event) => {
     const pan = panRef.current
-    if (!pan || (event.pointerId != null && pan.pointerId !== event.pointerId)) return
+    if (!pan || (event.pointerId != null && pan.pointerId != null && pan.pointerId !== event.pointerId)) return
     if (event.currentTarget.hasPointerCapture?.(pan.pointerId)) event.currentTarget.releasePointerCapture(pan.pointerId)
     panRef.current = null
     setIsPanning(false)
@@ -198,7 +199,7 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
     <div ref={frameRef} className="chart-frame">
       <div className="chart-toolbar"><span>{ui.hoverZoom}</span><span className="chart-toolbar-actions"><button type="button" onClick={() => zoomAt(.75)} aria-label="Zoom in">＋</button><button type="button" onClick={() => zoomAt(1.35)} aria-label="Zoom out">−</button><button type="button" onClick={() => { panRef.current = null; setIsPanning(false); setZoom(null) }} aria-label={ui.reset}>{ui.reset}</button></span></div>
       {!isDifference && <div className="chart-legend" aria-label={language === 'zh' ? '文件图例' : 'File legend'}>{series.filter((item) => !item.baseline && item.points.length).map((item) => <span key={item.id}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
-      <svg ref={(node) => { svgRef.current = node; onChartRef?.(node) }} className={`trace-chart${zoom ? ' is-pannable' : ''}${isPanning ? ' is-panning' : ''}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={finishPointerPan} onPointerCancel={finishPointerPan} onLostPointerCapture={finishPointerPan} onPointerLeave={handlePointerLeave}>
+      <svg ref={(node) => { svgRef.current = node; onChartRef?.(node) }} className={`trace-chart${zoom ? ' is-pannable' : ''}${isPanning ? ' is-panning' : ''}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={finishPointerPan} onPointerCancel={finishPointerPan} onLostPointerCapture={finishPointerPan} onPointerLeave={handlePointerLeave} onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={finishPointerPan} onMouseLeave={handlePointerLeave}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6d5dfc" stopOpacity="0.06"/><stop offset="1" stopColor="#6d5dfc" stopOpacity="0"/></linearGradient>
         </defs>
