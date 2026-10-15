@@ -141,9 +141,13 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
     return { step: labels.reduce((closest, candidate) => Math.abs(candidate - step) < Math.abs(closest - step) ? candidate : closest, labels[0]), xPercent: (svgX / width) * 100, yPercent: (svgY / height) * 100 }
   }
   const handlePointerDown = (event) => {
-    if (!zoom || !readPoint(event)) return
+    if (!zoom || event.button !== 0) return
     event.preventDefault()
-    event.currentTarget.setPointerCapture?.(event.pointerId)
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    } catch {
+      // Continue without capture when a browser surface does not expose it.
+    }
     panRef.current = { pointerId: event.pointerId, startX: event.clientX, domain: zoom }
     setIsPanning(true)
     setHoverStep(null)
