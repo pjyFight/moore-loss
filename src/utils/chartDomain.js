@@ -96,4 +96,20 @@ export function getIntegerStepTicks(minStep, maxStep, desiredCount = 11, plotWid
   return [start, ...ticks, end]
 }
 
+/**
+ * Shift a zoomed horizontal domain while keeping it inside the full domain.
+ * `delta` is expressed in the same units as the x-axis (training steps).
+ */
+export function shiftZoomDomain(domain, delta, fullDomain) {
+  if (!Array.isArray(domain) || domain.length < 2 || !Array.isArray(fullDomain) || fullDomain.length < 2) return domain
+  const [min, max] = domain
+  const [fullMin, fullMax] = fullDomain
+  if (![min, max, fullMin, fullMax, delta].every(Number.isFinite) || max <= min || fullMax <= fullMin) return domain
+  const range = max - min
+  const fullRange = fullMax - fullMin
+  if (range >= fullRange || range <= 0) return domain
+  const nextMin = Math.min(fullMax - range, Math.max(fullMin, min + delta))
+  return [nextMin, nextMin + range]
+}
+
 export default getYDomain

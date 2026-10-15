@@ -191,7 +191,8 @@ select:focus, input:focus-visible, button:focus-visible, a:focus-visible { outli
 .chart-toolbar-actions button:last-child { padding: 0 7px; }
 .trace-chart { display: block; width: 100%; height: auto; min-height: 240px; }
 .trace-chart { touch-action: none; cursor: crosshair; }
-.trace-chart:active { cursor: ew-resize; }
+.trace-chart.is-pannable { cursor: grab; }
+.trace-chart.is-panning { cursor: grabbing; }
 .chart-tooltip { position: absolute; top: 36px; z-index: 2; width: max-content; min-width: 165px; max-width: min(420px, calc(100% - 24px)); padding: 10px 12px; border-radius: 8px; background: rgba(29,36,51,.96); color: #f4f6fb; box-shadow: 0 8px 22px rgba(29,36,51,.18); pointer-events: none; font: 10px/1.45 'DM Mono', monospace; }
 .chart-tooltip > strong, .chart-tooltip > span { display: block; }
 .chart-tooltip strong { color: #fff; margin-bottom: 6px; font-weight: 600; }

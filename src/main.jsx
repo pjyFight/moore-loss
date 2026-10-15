@@ -5,7 +5,7 @@ import { buildComparisons, COMPARISON_MODES, formatErrorFixed, formatValue } fro
 import { DEFAULT_REGEX_RULES, parseLogText, previewLogText, samplePoints, validateRegexRules } from './utils/parseLog'
 import { anomalyColor, detectAnomalies } from './utils/anomalies'
 import { exportChartsToSvg } from './utils/exportCharts'
-import { getIntegerStepTicks, getYDomain } from './utils/chartDomain'
+import { getIntegerStepTicks, getYDomain, shiftZoomDomain } from './utils/chartDomain'
 import { buildSampleRules, findSampleValues, SAMPLE_RULE_FIELDS } from './utils/sampleRules'
 import { buildUploadFeedback } from './utils/uploadFeedback'
 
@@ -42,7 +42,7 @@ const I18N = {
     comparison: 'COMPARISON', traceOverview: 'TRACE OVERVIEW', byStep: 'by training step', points: 'points', stepDifference: 'STEP DIFFERENCE', bothPlots: 'All charts use the same full step range', samplingAverage: 'Sampling averages each step bucket', noSharedSteps: 'No shared steps with valid values for this metric.', pairStats: 'Comparison statistics',
     meanError: 'Mean error', meanSquare: 'Mean square error', maxError: 'Max error', minError: 'Min error', acrossShared: 'across shared steps', squaredAverage: 'squared difference average', absoluteMagnitude: 'absolute magnitude', minimumError: 'minimum error value',
     readingCharts: 'Reading the charts.', chartFirst: 'The first panel preserves every uploaded run.', chartSecond: 'Each following panel compares the baseline with one other run.', relativeDenominator: 'Relative modes use the selected baseline as the denominator, matching TrainingLogParser; relative views include a 2% reference line.',
-    hoverZoom: 'Hover for values · use buttons to zoom', trainingStep: 'training step', difference: 'difference', noValues: 'No values to display.', file: 'file', anomalySection: 'ANOMALIES', anomalyDetection: 'Anomaly detection', anomalyEnabled: 'Enable anomaly detection', spikeFactor: 'Spike factor', explosionFactor: 'Explosion ×', threshold: 'Error threshold', thresholdHelp: 'Red line on the difference chart; relative modes use the same 0.05 ratio (5%).', anomalyEvents: 'Anomaly events', noAnomalies: 'No anomalies detected', eventStep: 'Step', eventRun: 'Run', eventMetric: 'Metric', eventType: 'Type', eventValue: 'Value',
+    hoverZoom: 'Hover for values · buttons zoom · drag to pan', trainingStep: 'training step', difference: 'difference', noValues: 'No values to display.', file: 'file', anomalySection: 'ANOMALIES', anomalyDetection: 'Anomaly detection', anomalyEnabled: 'Enable anomaly detection', spikeFactor: 'Spike factor', explosionFactor: 'Explosion ×', threshold: 'Error threshold', thresholdHelp: 'Red line on the difference chart; relative modes use the same 0.05 ratio (5%).', anomalyEvents: 'Anomaly events', noAnomalies: 'No anomalies detected', eventStep: 'Step', eventRun: 'Run', eventMetric: 'Metric', eventType: 'Type', eventValue: 'Value',
   },
   zh: {
     language: 'EN', languageLabel: '切换到英文', export: '导出 SVG', github: 'GitHub',
@@ -55,7 +55,7 @@ const I18N = {
     comparison: '对比', traceOverview: '曲线总览', byStep: '按训练步数', points: '个点', stepDifference: '步级差值', bothPlots: '所有图使用相同的完整步数范围', samplingAverage: '采样会对每个步长桶取平均', noSharedSteps: '当前指标没有可对齐的有效共同步数。', pairStats: '对比统计',
     meanError: '平均误差', meanSquare: '均方误差', maxError: '最大误差', minError: '最小误差', acrossShared: '覆盖共同步数', squaredAverage: '差值平方的平均', absoluteMagnitude: '绝对值大小', minimumError: '误差最小值',
     readingCharts: '图表说明。', chartFirst: '第一张图保留所有已上传运行的原始曲线。', chartSecond: '后续每张图展示基准文件与一个其他文件的逐步对比。', relativeDenominator: '相对模式使用选定基准作为分母，与 TrainingLogParser 一致；相对视图包含 2% 参考线。',
-    hoverZoom: '悬停查看数值 · 使用按钮缩放', trainingStep: '训练步数', difference: '差值', noValues: '暂无可展示的数据。', file: '文件', anomalySection: '异常检测', anomalyDetection: '异常检测', anomalyEnabled: '启用异常检测', spikeFactor: '突增倍数', explosionFactor: '爆炸倍数', threshold: '误差阈值', thresholdHelp: '差值图中的红线；相对模式使用相同的 0.05 比例（5%）。', anomalyEvents: '异常事件', noAnomalies: '未检测到异常', eventStep: '步数', eventRun: '运行', eventMetric: '指标', eventType: '类型', eventValue: '数值',
+    hoverZoom: '悬停查看数值 · 按钮缩放 · 拖拽平移', trainingStep: '训练步数', difference: '差值', noValues: '暂无可展示的数据。', file: '文件', anomalySection: '异常检测', anomalyDetection: '异常检测', anomalyEnabled: '启用异常检测', spikeFactor: '突增倍数', explosionFactor: '爆炸倍数', threshold: '误差阈值', thresholdHelp: '差值图中的红线；相对模式使用相同的 0.05 比例（5%）。', anomalyEvents: '异常事件', noAnomalies: '未检测到异常', eventStep: '步数', eventRun: '运行', eventMetric: '指标', eventType: '类型', eventValue: '数值',
   },
 }
 
@@ -92,6 +92,8 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
   const [hoverStep, setHoverStep] = useState(null)
   const [hoverPosition, setHoverPosition] = useState(null)
   const [tooltipLeft, setTooltipLeft] = useState(null)
+  const panRef = useRef(null)
+  const [isPanning, setIsPanning] = useState(false)
   useLayoutEffect(() => {
     if (hoverStep === null || !hoverPosition || !frameRef.current || !svgRef.current || !tooltipRef.current) {
       setTooltipLeft((previous) => previous === null ? previous : null)
@@ -138,20 +140,61 @@ function LineChart({ series, onChartRef, chartLabel, yTitle, formatAxis = (value
     const step = xMin + ((svgX - pad.left) / innerWidth) * (xMax - xMin)
     return { step: labels.reduce((closest, candidate) => Math.abs(candidate - step) < Math.abs(closest - step) ? candidate : closest, labels[0]), xPercent: (svgX / width) * 100, yPercent: (svgY / height) * 100 }
   }
+  const handlePointerDown = (event) => {
+    if (!zoom || !readPoint(event)) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    panRef.current = { pointerId: event.pointerId, startX: event.clientX, domain: zoom }
+    setIsPanning(true)
+    setHoverStep(null)
+    setHoverPosition(null)
+  }
+  const handlePointerMove = (event) => {
+    const pan = panRef.current
+    if (pan) {
+      if (pan.pointerId !== event.pointerId) return
+      const rect = svgRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const plotWidth = rect.width * (innerWidth / width)
+      const range = pan.domain[1] - pan.domain[0]
+      const delta = -((event.clientX - pan.startX) / Math.max(plotWidth, 1)) * range
+      setZoom(shiftZoomDomain(pan.domain, delta, [fullMin, fullMax]))
+      return
+    }
+    const point = readPoint(event)
+    setHoverStep(point?.step ?? null)
+    setHoverPosition(point)
+  }
+  const finishPointerPan = (event) => {
+    const pan = panRef.current
+    if (!pan || (event.pointerId != null && pan.pointerId !== event.pointerId)) return
+    if (event.currentTarget.hasPointerCapture?.(pan.pointerId)) event.currentTarget.releasePointerCapture(pan.pointerId)
+    panRef.current = null
+    setIsPanning(false)
+  }
+  const handlePointerLeave = () => {
+    if (panRef.current) return
+    setHoverStep(null)
+    setHoverPosition(null)
+  }
   const zoomAt = (factor, center = (xMin + xMax) / 2) => {
     const fullRange = Math.max(fullMax - fullMin, 1)
     const currentRange = Math.max(xMax - xMin, 1)
     const nextRange = Math.min(fullRange, Math.max(fullRange / 100, currentRange * factor))
-    if (nextRange >= fullRange * .999) return setZoom(null)
+    if (nextRange >= fullRange * .999) {
+      panRef.current = null
+      setIsPanning(false)
+      return setZoom(null)
+    }
     const ratio = (center - xMin) / currentRange
     const nextMin = Math.min(fullMax - nextRange, Math.max(fullMin, center - ratio * nextRange))
     setZoom([nextMin, nextMin + nextRange])
   }
   return (
     <div ref={frameRef} className="chart-frame">
-      <div className="chart-toolbar"><span>{ui.hoverZoom}</span><span className="chart-toolbar-actions"><button type="button" onClick={() => zoomAt(.75)} aria-label="Zoom in">＋</button><button type="button" onClick={() => zoomAt(1.35)} aria-label="Zoom out">−</button><button type="button" onClick={() => setZoom(null)} aria-label={ui.reset}>{ui.reset}</button></span></div>
+      <div className="chart-toolbar"><span>{ui.hoverZoom}</span><span className="chart-toolbar-actions"><button type="button" onClick={() => zoomAt(.75)} aria-label="Zoom in">＋</button><button type="button" onClick={() => zoomAt(1.35)} aria-label="Zoom out">−</button><button type="button" onClick={() => { panRef.current = null; setIsPanning(false); setZoom(null) }} aria-label={ui.reset}>{ui.reset}</button></span></div>
       {!isDifference && <div className="chart-legend" aria-label={language === 'zh' ? '文件图例' : 'File legend'}>{series.filter((item) => !item.baseline && item.points.length).map((item) => <span key={item.id}><i style={{ background: item.color }} />{item.label}</span>)}</div>}
-      <svg ref={(node) => { svgRef.current = node; onChartRef?.(node) }} className="trace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onMouseMove={(event) => { const point = readPoint(event); setHoverStep(point?.step ?? null); setHoverPosition(point) }} onMouseLeave={() => { setHoverStep(null); setHoverPosition(null) }}>
+      <svg ref={(node) => { svgRef.current = node; onChartRef?.(node) }} className={`trace-chart${zoom ? ' is-pannable' : ''}${isPanning ? ' is-panning' : ''}`} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={chartLabel} onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={finishPointerPan} onPointerCancel={finishPointerPan} onLostPointerCapture={finishPointerPan} onPointerLeave={handlePointerLeave}>
         <defs>
           <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#6d5dfc" stopOpacity="0.06"/><stop offset="1" stopColor="#6d5dfc" stopOpacity="0"/></linearGradient>
         </defs>

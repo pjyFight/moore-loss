@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getIntegerStepTicks, getYDomain } from './chartDomain.js'
+import { getIntegerStepTicks, getYDomain, shiftZoomDomain } from './chartDomain.js'
 
 test('zero-baseline raw traces use a wide readable scale', () => {
   assert.deepEqual(getYDomain([1, 2, 3], { zeroBaseline: true }), [0, 5])
@@ -114,5 +114,25 @@ test('extreme finite step domains return bounded integer ticks without losing en
       assert.ok(tick >= minStep && tick <= maxStep, 'ticks must stay inside the visible range')
       if (index > 0) assert.ok(tick > ticks[index - 1], 'ticks must advance despite floating-point precision limits')
     }
+  }
+})
+
+test('zoomed domains pan horizontally and preserve their range', () => {
+  assert.deepEqual(shiftZoomDomain([20, 40], -5, [0, 100]), [15, 35])
+  assert.deepEqual(shiftZoomDomain([20, 40], 5, [0, 100]), [25, 45])
+  assert.deepEqual(shiftZoomDomain([0, 100], 25, [0, 100]), [0, 100])
+  assert.deepEqual(shiftZoomDomain([20, 40], -100, [0, 100]), [0, 20])
+  assert.deepEqual(shiftZoomDomain([20, 40], 100, [0, 100]), [80, 100])
+})
+
+test('invalid pan inputs leave the zoom domain unchanged', () => {
+  const domain = [20, 40]
+  for (const args of [
+    [[20, 40], NaN, [0, 100]],
+    [[20, 20], 5, [0, 100]],
+    [[20, 40], 5, [100, 0]],
+    [domain, 5, null],
+  ]) {
+    assert.deepEqual(shiftZoomDomain(...args), args[0])
   }
 })
