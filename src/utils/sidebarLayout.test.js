@@ -6,6 +6,7 @@ import test from 'node:test'
 // stylesheet contract tests, not a replacement for rendered browser checks.
 const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '')
+const source = readFileSync(new URL('../main.jsx', import.meta.url), 'utf8')
 const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
 
 function declarationsFor(selector) {
@@ -66,7 +67,7 @@ test('file names remain ellipsized and file controls do not force wider rows', (
 })
 
 test('preview statistics can wrap large counts inside two bounded columns', () => {
-  assert.equal(declarationsFor('.preview-stats')['grid-template-columns'], 'repeat(2, minmax(0, 1fr))')
+  assert.equal(declarationsFor('.preview-stats')['grid-template-columns'], 'repeat(3, minmax(0, 1fr))')
   assert.equal(declarationsFor('.preview-stats span')['min-width'], '0')
   assert.equal(declarationsFor('.preview-stats span')['flex-wrap'], 'wrap')
   assert.equal(declarationsFor('.preview-stats b')['max-width'], '100%')
@@ -101,4 +102,25 @@ test('expanded generated rules retain their bounded wrapping and local scroll ar
   assert.equal(rule['overflow-wrap'], 'anywhere')
   assert.equal(rule.overflow, 'auto')
   assert.equal(rule['max-height'], '128px')
+})
+
+test('the rail keeps core workflow sections visible and preview samples secondary', () => {
+  for (const section of ['sources', 'parser', 'configuration']) {
+    assert.match(source, new RegExp(`data-section="${section}"`))
+  }
+  assert.match(source, /className="preview-samples-disclosure"/)
+  assert.doesNotMatch(source, /<details[^>]*rail-section-parser/)
+})
+
+test('brand wordmark applies the Moore Threads orange accent to the second o', () => {
+  assert.match(source, /className="brand-word"[^>]*>.*className="brand-orange"/s)
+  assert.match(css, /--moore-orange:\s*#ef5b2a/)
+  assert.match(css, /\.brand-orange\s*\{[^}]*color:\s*var\(--moore-orange\)/)
+})
+
+test('desktop rail stays in view while mobile returns to natural page flow', () => {
+  assert.match(css, /\.control-rail\s*\{[^}]*position:\s*sticky;/)
+  assert.match(css, /\.control-rail\s*\{[^}]*max-height:\s*calc\(100vh - var\(--topbar-height\) - 32px\);/)
+  assert.match(css, /\.control-rail\s*\{[^}]*overflow-y:\s*auto;/)
+  assert.match(css, /@media \(max-width: 740px\)[\s\S]*?\.control-rail\s*\{[^}]*position:\s*static;[^}]*max-height:\s*none;[^}]*overflow:\s*visible;/)
 })

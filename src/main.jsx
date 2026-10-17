@@ -36,7 +36,7 @@ const I18N = {
     eyebrow: 'TRAINING TRACE WORKBENCH', title: 'Compare training traces', intro: 'Pull loss and gradient norm signals out of messy logs, then see where runs separate.',
     sources: 'SOURCES', uploadLogs: 'Upload logs', dropLogs: 'Drop training logs', browse: 'or click to browse files', formats: 'JSON, JSONL, CSV or text logs', multiHint: 'Select up to 4 files at once', parsedPoints: 'parsed points · local file',
     parser: 'PARSER RULES', parseFields: 'Parse fields', reset: 'Reset', parserHelp: 'Paste one example and select the value to extract, or switch to regex for full control.', parserMode: 'Parsing mode', sampleMode: 'By example', regexMode: 'Regex', sampleHelp: 'Paste one representative fragment and tell the tool which value to extract. It will generalize the pattern for the rest of the log.', exampleRule: 'Load example inputs', exampleLine: 'Example text', targetValue: 'Value to extract', chooseOccurrence: 'Choose occurrence', foundInExample: 'Found in example', generatedRule: 'Generated rule', stepRegex: 'Step regex', lossRegex: 'Loss regex', gradRegex: 'Grad norm regex', exactHelp: 'Use one capture group (...) for the value. Exact mode requires an explicit Step and at least one metric on the same line.', applyRules: 'Apply rules', testRules: 'Test rules', testComplete: 'Rule test complete', preview: 'LIVE PREVIEW', previewFile: 'Preview file', matchedRows: 'Matched rows', validPoints: 'Valid points', matchedStep: 'Step matches', matchedLoss: 'Loss matches', matchedGrad: 'Grad norm matches', stepRange: 'Step range', duplicates: 'Duplicate steps', previewEmpty: 'Upload a text log to preview matches.', previewNoMatch: 'No rows matched all required fields.', rulesApplied: 'Rules applied', rulesNotApplied: 'Draft only — apply to update charts.', sampleMissing: 'Add an example and a value to generate this rule.',
-    chooseValue: 'Click a number below, or enter the value to extract.', selectedValue: 'Selected value', sampleRowHelp: 'Use a short fragment around each value. In the real log, Step and the metric must appear on the same line; other numbers may change.', sampleRequired: 'Configure Step and at least one metric. Leave unused metric examples empty.', appliedMode: 'Charts use', previewUpdating: 'Updating preview…', previewSource: 'Source line', needsRule: 'Needs parsing rule', uploadKept: 'File kept. Configure an example and apply it to extract values.', noMetricSample: 'Add a Loss or Grad norm example.', noMatchingRows: 'No valid rows matched. Charts have not changed.',
+    chooseValue: 'Click a number below, or enter the value to extract.', selectedValue: 'Selected value', sampleRowHelp: 'Use a short fragment around each value. In the real log, Step and the metric must appear on the same line; other numbers may change.', sampleRequired: 'Configure Step and at least one metric. Leave unused metric examples empty.', appliedMode: 'Charts use', previewUpdating: 'Updating preview…', previewSource: 'Source line', previewSamples: 'Show matched samples', needsRule: 'Needs parsing rule', uploadKept: 'File kept. Configure an example and apply it to extract values.', noMetricSample: 'Add a Loss or Grad norm example.', noMatchingRows: 'No valid rows matched. Charts have not changed.',
     configuration: 'CONFIGURATION', shapeView: 'Shape the view', metric: 'Metric', loss: 'Loss', gradNorm: 'Grad norm', sampling: 'Sampling step', steps: 'steps', comparisonMode: 'Comparison mode',
     ready: 'Ready to upload', startLogs: 'Start with your training logs', uploadOne: 'Upload a log to view its loss or grad norm curve. Add more logs to compare each run against a selected baseline.', singleRun: 'Single run view.', uploadSecond: 'Upload another file to unlock step-by-step comparison.', baseline: 'Baseline', setBaseline: 'Set as baseline', vs: 'vs',
     comparison: 'COMPARISON', traceOverview: 'TRACE OVERVIEW', byStep: 'by training step', points: 'points', stepDifference: 'STEP DIFFERENCE', bothPlots: 'All charts use the same full step range', samplingAverage: 'Sampling averages each step bucket', noSharedSteps: 'No shared steps with valid values for this metric.', pairStats: 'Comparison statistics',
@@ -49,7 +49,7 @@ const I18N = {
     eyebrow: '训练曲线工作台', title: '对比训练曲线', intro: '从训练日志中提取 loss 和 grad norm，观察不同运行之间的差异。',
     sources: '数据源', uploadLogs: '上传日志', dropLogs: '拖入训练日志', browse: '或点击选择文件', formats: 'JSON、JSONL、CSV 或文本日志', multiHint: '一次最多选择 4 个文件', parsedPoints: '个解析点 · 本地文件',
     parser: '解析规则', parseFields: '解析字段', reset: '重置', parserHelp: '粘贴一条示例并选出要提取的值，或切换到正则模式自行控制。', parserMode: '解析模式', sampleMode: '按示例', regexMode: '正则', sampleHelp: '粘贴一段代表性日志，并告诉工具要提取哪个值；工具会自动泛化出整类日志的匹配规则。', exampleRule: '载入示例输入', exampleLine: '示例文本', targetValue: '要提取的值', chooseOccurrence: '选择第几处', foundInExample: '示例中已找到', generatedRule: '自动生成规则', stepRegex: 'Step 正则', lossRegex: 'Loss 正则', gradRegex: 'Grad norm 正则', exactHelp: '使用一个捕获组 (...) 提取数值。正则模式要求同一行有明确 Step，且至少有一个指标。', applyRules: '应用规则', testRules: '测试规则', testComplete: '规则测试完成', preview: '实时预览', previewFile: '预览文件', matchedRows: '匹配行数', validPoints: '有效点', matchedStep: 'Step 命中', matchedLoss: 'Loss 命中', matchedGrad: 'Grad norm 命中', stepRange: 'Step 范围', duplicates: '重复 Step', previewEmpty: '上传文本日志后，可预览匹配结果。', previewNoMatch: '没有行同时匹配必要字段。', rulesApplied: '规则已应用', rulesNotApplied: '草稿规则尚未应用到图表。', sampleMissing: '请填写示例文本和要提取的值。',
-    chooseValue: '点击下方数值，或填写要提取的值。', selectedValue: '已选取值', sampleRowHelp: '每个示例只保留目标值附近的短片段。实际日志中 Step 和指标需在同一行，其他数值可以变化。', sampleRequired: '填写 Step 和至少一个指标；不用的指标示例留空即可。', appliedMode: '当前图表使用', previewUpdating: '正在更新预览…', previewSource: '原始日志行', needsRule: '待配置解析规则', uploadKept: '文件已保留，请填写示例并应用规则以提取数值。', noMetricSample: '请至少填写 Loss 或 Grad norm 示例。', noMatchingRows: '没有匹配到有效记录，图表保持不变。',
+    chooseValue: '点击下方数值，或填写要提取的值。', selectedValue: '已选取值', sampleRowHelp: '每个示例只保留目标值附近的短片段。实际日志中 Step 和指标需在同一行，其他数值可以变化。', sampleRequired: '填写 Step 和至少一个指标；不用的指标示例留空即可。', appliedMode: '当前图表使用', previewUpdating: '正在更新预览…', previewSource: '原始日志行', previewSamples: '查看匹配样例', needsRule: '待配置解析规则', uploadKept: '文件已保留，请填写示例并应用规则以提取数值。', noMetricSample: '请至少填写 Loss 或 Grad norm 示例。', noMatchingRows: '没有匹配到有效记录，图表保持不变。',
     configuration: '配置', shapeView: '调整视图', metric: '指标', loss: 'Loss', gradNorm: 'Grad norm', sampling: '采样步长', steps: '步', comparisonMode: '对比方式',
     ready: '等待上传', startLogs: '从训练日志开始', uploadOne: '上传一个日志即可查看 loss 或 grad norm 曲线；继续上传文件，可将每个运行与选定基准进行对比。', singleRun: '单文件视图。', uploadSecond: '再上传一个文件以开启逐步对比。', baseline: '基准文件', setBaseline: '设为基准', vs: '对比',
     comparison: '对比', traceOverview: '曲线总览', byStep: '按训练步数', points: '个点', stepDifference: '步级差值', bothPlots: '所有图使用相同的完整步数范围', samplingAverage: '采样会对每个步长桶取平均', noSharedSteps: '当前指标没有可对齐的有效共同步数。', pairStats: '对比统计',
@@ -484,7 +484,7 @@ function App() {
 
   return <div className="app-shell">
     <header className="topbar">
-      <a href="." className="brand"><span className="brand-mark">M</span><span>Moore <em>Loss</em></span></a>
+      <a href="." className="brand" aria-label="Moore Loss"><span className="brand-mark">M</span><span className="brand-word"><span>Mo</span><span className="brand-orange">o</span><span>re</span> <em>Loss</em></span></a>
       <div className="topbar-actions"><button className="ghost-button language-toggle" onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')} aria-label={ui.languageLabel}>{ui.language}</button><button className="ghost-button" onClick={exportChart} disabled={!rawSeries.some((series) => series.points.length)}><Icon name="download" size={15} /> {ui.export}</button><a className="ghost-button" href="https://github.com" target="_blank" rel="noreferrer"><Icon name="github" size={15} /> {ui.github}</a></div>
     </header>
 
@@ -495,66 +495,73 @@ function App() {
 
       <section className="app-grid">
         <aside className="control-rail">
-          <div className="rail-header"><div><span className="section-kicker">01 / {ui.sources}</span><h2>{ui.uploadLogs}</h2></div><span className="count-badge">{runs.length}/4</span></div>
-          <Dropzone onFiles={handleFiles} language={language} />
-          {runs.length > 0 ? <div className="run-list" role="group" aria-label={ui.baseline}>{runs.map((run, index) => <RunRow key={run.id} run={run} index={index} isBaseline={baselineRun?.id === run.id} onSetBaseline={setBaselineId} language={language} onRemove={removeRun} />)}</div> : null}
-          {uploadFeedback && <div className="error-message" role="status">{uploadFeedback}</div>}
+          <section className="rail-section rail-section-sources" data-section="sources">
+            <div className="rail-header"><div><span className="section-kicker">01 / {ui.sources}</span><h2>{ui.uploadLogs}</h2></div><span className="count-badge">{runs.length}/4</span></div>
+            <Dropzone onFiles={handleFiles} language={language} />
+            {runs.length > 0 ? <div className="run-list" role="group" aria-label={ui.baseline}>{runs.map((run, index) => <RunRow key={run.id} run={run} index={index} isBaseline={baselineRun?.id === run.id} onSetBaseline={setBaselineId} language={language} onRemove={removeRun} />)}</div> : null}
+            {uploadFeedback && <div className="error-message" role="status">{uploadFeedback}</div>}
+          </section>
           <div className="rail-divider" />
-          <div className="rail-header"><div><span className="section-kicker">02 / {ui.parser}</span><h2>{ui.parseFields}</h2></div><button className="text-button" onClick={resetParserRules}>{ui.reset}</button></div>
-          <p className="parser-help">{ui.parserHelp}</p>
-          <div className="parser-mode-switcher" role="group" aria-label={ui.parserMode}>
-            <button type="button" aria-pressed={parserMode === 'sample'} className={`parser-mode-button ${parserMode === 'sample' ? 'is-active' : ''}`} onClick={() => handleParserModeChange('sample')}>{ui.sampleMode}</button>
-            <button type="button" aria-pressed={parserMode === 'regex'} className={`parser-mode-button ${parserMode === 'regex' ? 'is-active' : ''}`} onClick={() => handleParserModeChange('regex')}>{ui.regexMode}</button>
-          </div>
-          <p className="parser-active-mode">{ui.appliedMode}: <strong>{activeParserMode === 'regex' ? ui.regexMode : ui.sampleMode}</strong></p>
-          {parserMode === 'sample' && <div className="sample-parser">
-            <p className="parser-exact-help">{ui.sampleHelp}</p>
-            <p className="parser-exact-help">{ui.sampleRequired} {ui.sampleRowHelp}</p>
-            <button type="button" className="text-button example-rule-button" onClick={() => { setSampleDraft(SAMPLE_EXAMPLE_DRAFT); setParserError(''); setParserNotice(I18N[language].rulesNotApplied) }}>{ui.exampleRule}</button>
-            {SAMPLE_RULE_FIELDS.map((field) => <SampleField key={field} field={field} draft={sampleDraft[field]} result={generatedSampleRules.results[field]} onChange={updateSampleField} language={language} />)}
-          </div>}
-          {parserMode === 'regex' && <div className="regex-parser">
-            <p className="parser-exact-help">{ui.exactHelp}</p>
-            <label className="field-label" htmlFor="step-regex">{ui.stepRegex}</label>
-            <input id="step-regex" className="rule-input" value={draftParserRules.step ?? ''} onChange={(event) => handleRuleChange('step', event.target.value)} />
-            <label className="field-label" htmlFor="loss-regex">{ui.lossRegex}</label>
-            <input id="loss-regex" className="rule-input" value={draftParserRules.loss ?? ''} onChange={(event) => handleRuleChange('loss', event.target.value)} />
-            <label className="field-label" htmlFor="grad-regex">{ui.gradRegex}</label>
-            <input id="grad-regex" className="rule-input" value={draftParserRules.gradNorm ?? ''} onChange={(event) => handleRuleChange('gradNorm', event.target.value)} />
-          </div>}
-          <div className="parser-actions"><button type="button" className="secondary-button" onClick={testParserConfig}>{ui.testRules}</button><button type="button" className="primary-button" disabled={draftValidationErrors.length > 0 || (runs.length > 0 && (!parserPreview?.matchedRows || previewPending))} onClick={() => applyParserConfig(parserMode, rulesForMode())}>{ui.applyRules}</button></div>
-          {parserError && <div className="error-message">{parserError}</div>}
-          {parserNotice && !parserError && <div className="parser-notice">{parserNotice}</div>}
-          <div className="parser-preview">
-            <div className="parser-preview-head"><span className="section-kicker">{ui.preview}</span>{runs.length > 1 && <select aria-label={ui.previewFile} value={previewRun?.id ?? ''} onChange={(event) => setPreviewRunId(event.target.value)}><option value="">{ui.previewFile}</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.name}</option>)}</select>}</div>
-            {previewPending ? <p className="preview-empty">{ui.previewUpdating}</p> : !parserPreview ? <p className="preview-empty">{ui.previewEmpty}</p> : <>
-              <div className="preview-stats"><span>{ui.matchedRows}<b>{parserPreview.matchedRows}</b></span><span>{ui.validPoints}<b>{parserPreview.matchedRows}</b></span><span>{ui.matchedStep}<b>{parserPreview.fieldMatches.step}</b></span><span>{ui.matchedLoss}<b>{parserPreview.fieldMatches.loss}</b></span><span>{ui.matchedGrad}<b>{parserPreview.fieldMatches.gradNorm}</b></span><span>{ui.duplicates}<b>{parserPreview.duplicateSteps}</b></span></div>
-              <p className="preview-range">{ui.stepRange}: {parserPreview.stepRange ? `${parserPreview.stepRange[0].toLocaleString()} → ${parserPreview.stepRange[1].toLocaleString()}` : '—'}</p>
-              {parserPreview.errors.length > 0 && <p className="preview-error">{parserPreview.errors[0]}</p>}
-              {!parserPreview.errors.length && !parserPreview.matchedRows && <p className="preview-error">{ui.previewNoMatch}</p>}
-              {parserPreview.sampleRows?.length > 0 && <div className="preview-samples">{parserPreview.sampleRows.slice(0, 3).map(({ source, point }) => <div className="preview-sample" key={`${point.step}-${source}`}><span title={source}>{ui.previewSource}: {source}</span><code>step={point.step} · loss={point.loss ?? '—'} · grad={point.gradNorm ?? '—'}</code></div>)}</div>}
-            </>}
-          </div>
+          <div className="rail-main-grid">
+          <section className="rail-section rail-section-parser" data-section="parser">
+            <div className="rail-header"><div><span className="section-kicker">02 / {ui.parser}</span><h2>{ui.parseFields}</h2></div><button className="text-button" onClick={resetParserRules}>{ui.reset}</button></div>
+            <p className="parser-help">{ui.parserHelp}</p>
+            <div className="parser-mode-switcher" role="group" aria-label={ui.parserMode}>
+              <button type="button" aria-pressed={parserMode === 'sample'} className={`parser-mode-button ${parserMode === 'sample' ? 'is-active' : ''}`} onClick={() => handleParserModeChange('sample')}>{ui.sampleMode}</button>
+              <button type="button" aria-pressed={parserMode === 'regex'} className={`parser-mode-button ${parserMode === 'regex' ? 'is-active' : ''}`} onClick={() => handleParserModeChange('regex')}>{ui.regexMode}</button>
+            </div>
+            <p className="parser-active-mode">{ui.appliedMode}: <strong>{activeParserMode === 'regex' ? ui.regexMode : ui.sampleMode}</strong></p>
+            {parserMode === 'sample' && <div className="sample-parser">
+              <p className="parser-exact-help">{ui.sampleHelp}</p>
+              <p className="parser-exact-help">{ui.sampleRequired} {ui.sampleRowHelp}</p>
+              <button type="button" className="text-button example-rule-button" onClick={() => { setSampleDraft(SAMPLE_EXAMPLE_DRAFT); setParserError(''); setParserNotice(I18N[language].rulesNotApplied) }}>{ui.exampleRule}</button>
+              {SAMPLE_RULE_FIELDS.map((field) => <SampleField key={field} field={field} draft={sampleDraft[field]} result={generatedSampleRules.results[field]} onChange={updateSampleField} language={language} />)}
+            </div>}
+            {parserMode === 'regex' && <div className="regex-parser">
+              <p className="parser-exact-help">{ui.exactHelp}</p>
+              <label className="field-label" htmlFor="step-regex">{ui.stepRegex}</label>
+              <input id="step-regex" className="rule-input" value={draftParserRules.step ?? ''} onChange={(event) => handleRuleChange('step', event.target.value)} />
+              <label className="field-label" htmlFor="loss-regex">{ui.lossRegex}</label>
+              <input id="loss-regex" className="rule-input" value={draftParserRules.loss ?? ''} onChange={(event) => handleRuleChange('loss', event.target.value)} />
+              <label className="field-label" htmlFor="grad-regex">{ui.gradRegex}</label>
+              <input id="grad-regex" className="rule-input" value={draftParserRules.gradNorm ?? ''} onChange={(event) => handleRuleChange('gradNorm', event.target.value)} />
+            </div>}
+            <div className="parser-actions"><button type="button" className="secondary-button" onClick={testParserConfig}>{ui.testRules}</button><button type="button" className="primary-button" disabled={draftValidationErrors.length > 0 || (runs.length > 0 && (!parserPreview?.matchedRows || previewPending))} onClick={() => applyParserConfig(parserMode, rulesForMode())}>{ui.applyRules}</button></div>
+            {parserError && <div className="error-message">{parserError}</div>}
+            {parserNotice && !parserError && <div className="parser-notice">{parserNotice}</div>}
+            <div className="parser-preview">
+              <div className="parser-preview-head"><span className="section-kicker">{ui.preview}</span>{runs.length > 1 && <select aria-label={ui.previewFile} value={previewRun?.id ?? ''} onChange={(event) => setPreviewRunId(event.target.value)}><option value="">{ui.previewFile}</option>{runs.map((run) => <option key={run.id} value={run.id}>{run.name}</option>)}</select>}</div>
+              {previewPending ? <p className="preview-empty">{ui.previewUpdating}</p> : !parserPreview ? <p className="preview-empty">{ui.previewEmpty}</p> : <>
+                <div className="preview-stats"><span>{ui.matchedRows}<b>{parserPreview.matchedRows}</b></span><span>{ui.validPoints}<b>{parserPreview.matchedRows}</b></span><span>{ui.matchedStep}<b>{parserPreview.fieldMatches.step}</b></span><span>{ui.matchedLoss}<b>{parserPreview.fieldMatches.loss}</b></span><span>{ui.matchedGrad}<b>{parserPreview.fieldMatches.gradNorm}</b></span><span>{ui.duplicates}<b>{parserPreview.duplicateSteps}</b></span></div>
+                <p className="preview-range">{ui.stepRange}: {parserPreview.stepRange ? `${parserPreview.stepRange[0].toLocaleString()} → ${parserPreview.stepRange[1].toLocaleString()}` : '—'}</p>
+                {parserPreview.errors.length > 0 && <p className="preview-error">{parserPreview.errors[0]}</p>}
+                {!parserPreview.errors.length && !parserPreview.matchedRows && <p className="preview-error">{ui.previewNoMatch}</p>}
+                {parserPreview.sampleRows?.length > 0 && <details className="preview-samples-disclosure"><summary>{ui.previewSamples} · {Math.min(parserPreview.sampleRows.length, 3)}</summary><div className="preview-samples">{parserPreview.sampleRows.slice(0, 3).map(({ source, point }) => <div className="preview-sample" key={`${point.step}-${source}`}><span title={source}>{ui.previewSource}: {source}</span><code>step={point.step} · loss={point.loss ?? '—'} · grad={point.gradNorm ?? '—'}</code></div>)}</div></details>}
+              </>}
+            </div>
+          </section>
           <div className="rail-divider" />
-          <div className="rail-header"><div><span className="section-kicker">03 / {ui.configuration}</span><h2>{ui.shapeView}</h2></div></div>
-          <label className="field-label" htmlFor="metric">{ui.metric}</label>
-          <div className="select-wrap"><select id="metric" value={metric} onChange={(event) => setMetric(event.target.value)}><option value="loss">{ui.loss}</option><option value="gradNorm">{ui.gradNorm}</option></select><Icon name="chevron" size={15} /></div>
-          <label className="field-label" htmlFor="sample-step">{ui.sampling} <span>{sampleStep.toLocaleString()}</span></label>
-          <input id="sample-step" className="range-input" type="range" min="1" max="5000" step="1" value={sampleStep} onChange={(event) => setSampleStep(Number(event.target.value))} />
-          <div className="step-input-row"><input aria-label={ui.sampling} type="number" min="1" max="5000" value={sampleStep} onChange={(event) => setSampleStep(Math.min(5000, Math.max(1, Math.trunc(Number(event.target.value)) || 1)))} /><span>{ui.steps}</span></div>
-          <fieldset className="mode-fieldset">
-            <legend className="field-label">{ui.comparisonMode}</legend>
-            <div className="mode-switcher">{Object.entries(COMPARISON_MODES).map(([key, value]) => <label key={key} className={`mode-option ${mode === key ? 'is-active' : ''}`}>
-              <input type="radio" name="comparison-mode" value={key} checked={mode === key} onChange={() => setMode(key)} aria-label={modeLabel(key, language)} />
-              <span className="mode-option-copy"><span className="mode-option-label">{modeLabel(key, language)}</span><span className="mode-option-formula">{value.helper}</span></span>
-            </label>)}</div>
-          </fieldset>
-          <p className="mode-helper">{language === 'zh' ? 'A = 选定基准 · B = 各对比文件 · ' : 'A = selected baseline · B = each comparison run · '}{modeConfig.helper}</p>
-          <div className="threshold-config"><label className="field-label" htmlFor="comparison-threshold">{ui.threshold} <span>{comparisonThreshold.toFixed(2)}</span></label><input id="comparison-threshold" className="threshold-input" type="number" min="0" max="1000000" step="0.01" value={comparisonThreshold} onChange={(event) => setComparisonThreshold(Math.max(0, Number(event.target.value) || 0))} /><p className="threshold-help">{ui.thresholdHelp}</p></div>
-          <div className="anomaly-config">
-            <div className="section-kicker">05 / {ui.anomalySection}</div>
-            <label className="anomaly-toggle"><input type="checkbox" checked={anomalyOptions.enabled} onChange={(event) => setAnomalyOptions((current) => ({ ...current, enabled: event.target.checked }))} />{ui.anomalyEnabled}</label>
-            <div className="anomaly-fields"><label><span>{ui.spikeFactor}</span><input type="number" min="1.1" max="20" step="0.1" value={anomalyOptions.spikeFactor} onChange={(event) => setAnomalyOptions((current) => ({ ...current, spikeFactor: Math.max(1.1, Number(event.target.value) || 2) }))} /></label><label><span>{ui.explosionFactor}</span><input type="number" min="2" max="50" step="0.5" value={anomalyOptions.explosionFactor} onChange={(event) => setAnomalyOptions((current) => ({ ...current, explosionFactor: Math.max(2, Number(event.target.value) || 5) }))} /></label></div>
+          <section className="rail-section rail-section-config" data-section="configuration">
+            <div className="rail-header"><div><span className="section-kicker">03 / {ui.configuration}</span><h2>{ui.shapeView}</h2></div></div>
+            <div className="config-quick-grid">
+              <div className="config-quick-field"><label className="field-label" htmlFor="metric">{ui.metric}</label><div className="select-wrap"><select id="metric" value={metric} onChange={(event) => setMetric(event.target.value)}><option value="loss">{ui.loss}</option><option value="gradNorm">{ui.gradNorm}</option></select><Icon name="chevron" size={15} /></div></div>
+              <div className="config-quick-field sampling-field"><label className="field-label" htmlFor="sample-step">{ui.sampling} <span>{sampleStep.toLocaleString()}</span></label><input id="sample-step" className="range-input" type="range" min="1" max="5000" step="1" value={sampleStep} onChange={(event) => setSampleStep(Number(event.target.value))} /><div className="step-input-row"><input aria-label={ui.sampling} type="number" min="1" max="5000" value={sampleStep} onChange={(event) => setSampleStep(Math.min(5000, Math.max(1, Math.trunc(Number(event.target.value)) || 1)))} /><span>{ui.steps}</span></div></div>
+            </div>
+            <fieldset className="mode-fieldset">
+              <legend className="field-label">{ui.comparisonMode}</legend>
+              <div className="mode-switcher">{Object.entries(COMPARISON_MODES).map(([key, value]) => <label key={key} className={`mode-option ${mode === key ? 'is-active' : ''}`}>
+                <input type="radio" name="comparison-mode" value={key} checked={mode === key} onChange={() => setMode(key)} aria-label={modeLabel(key, language)} />
+                <span className="mode-option-copy"><span className="mode-option-label">{modeLabel(key, language)}</span><span className="mode-option-formula">{value.helper}</span></span>
+              </label>)}</div>
+            </fieldset>
+            <p className="mode-helper">{language === 'zh' ? 'A = 选定基准 · B = 各对比文件 · ' : 'A = selected baseline · B = each comparison run · '}{modeConfig.helper}</p>
+            <div className="threshold-config"><label className="field-label" htmlFor="comparison-threshold">{ui.threshold} <span>{comparisonThreshold.toFixed(2)}</span></label><input id="comparison-threshold" className="threshold-input" type="number" min="0" max="1000000" step="0.01" value={comparisonThreshold} onChange={(event) => setComparisonThreshold(Math.max(0, Number(event.target.value) || 0))} /><p className="threshold-help">{ui.thresholdHelp}</p></div>
+            <div className="anomaly-config">
+              <div className="section-kicker">05 / {ui.anomalySection}</div>
+              <label className="anomaly-toggle"><input type="checkbox" checked={anomalyOptions.enabled} onChange={(event) => setAnomalyOptions((current) => ({ ...current, enabled: event.target.checked }))} />{ui.anomalyEnabled}</label>
+              <div className="anomaly-fields"><label><span>{ui.spikeFactor}</span><input type="number" min="1.1" max="20" step="0.1" value={anomalyOptions.spikeFactor} onChange={(event) => setAnomalyOptions((current) => ({ ...current, spikeFactor: Math.max(1.1, Number(event.target.value) || 2) }))} /></label><label><span>{ui.explosionFactor}</span><input type="number" min="2" max="50" step="0.5" value={anomalyOptions.explosionFactor} onChange={(event) => setAnomalyOptions((current) => ({ ...current, explosionFactor: Math.max(2, Number(event.target.value) || 5) }))} /></label></div>
+            </div>
+          </section>
           </div>
         </aside>
 
